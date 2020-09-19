@@ -1,6 +1,6 @@
-import random
 import math
-import scipy
+import random
+
 import networkx as nx
 
 
