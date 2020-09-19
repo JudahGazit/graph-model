@@ -10,10 +10,10 @@ function setDefaultForController(controller, name) {
 function setDefaultFormValues() {
   let inputs = {
     '#inputNumberOfLeaves': 'leaves',
-    '#inputA': 'A',
     '#inputB': 'B',
     '#inputAlpha': 'alpha',
     '#inputBeta': 'beta',
+    '#inputA': 'A',
 
   }
   for (let inputsKey in inputs) {
@@ -31,24 +31,22 @@ function generateFormulaLink() {
   $('#formula-img')[0].src = link;
 }
 
-function setBLimit() {
-  let A = $('#inputA')[0].value;
+function setRangeLimits() {
+  let alpha = $('#inputAlpha')[0].value;
+  let beta = $('#inputBeta')[0].value;
   let B = $('#inputB')[0].value;
-  let N = Math.pow(2, $('#inputNumberOfLeaves')[0].value);
-  let betaMin = Math.log(1 / B) / 2;
-  let betaMax = Math.log(1 / B) / Math.log(N);
-  let alphaMax = Math.log(A) - Math.log(1 - B * Math.pow(N, betaMin))
-  alphaMax /= ((2 * Math.PI) / N)
-  $('#inputAlpha')[0].max = alphaMax;
-  $('#inputBeta')[0].max = betaMax
+  let m = $('#inputNumberOfLeaves')[0].value;
+  let N = Math.pow(2, m);
+  let AMax = Math.exp(alpha * 2 * Math.PI / N) - B * Math.exp(2 * beta * m + ((2 * alpha * Math.PI) / N));
+  $('#inputA')[0].max = AMax;
 }
 
 
 function handleControllerChanged(controllerName, textName) {
   let value = $('#' + controllerName)[0].value;
   $('#' + textName)[0].value = value;
+  setRangeLimits();
   generateFormulaLink();
-  setBLimit();
 }
 
 function handleNumberOfLeavesChange() {

@@ -1,6 +1,6 @@
 import random
 import math
-
+import scipy
 import networkx as nx
 
 
@@ -22,7 +22,11 @@ def hierarchical_distance(a, b):
 def get_probability(num_leaves, A, B, alpha, beta, a, b):
     result = A * math.exp(- alpha * perimeter_distance(a, b, num_leaves))
     result += B * math.exp(beta * hierarchical_distance(a, b))
-    assert result <= 1
+    try:
+        assert result <= 1
+    except:
+        print(a, b, hierarchical_distance(a, b), perimeter_distance(a, b, num_leaves))
+        raise
     return result
 
 
