@@ -1,3 +1,4 @@
 flask
 pandas
 networkx
+flask_cors

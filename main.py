@@ -1,9 +1,11 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from graph_formatter import GraphFormatter
 from graph_simulator import GraphSimulator
 
-app = Flask(__name__, static_url_path='')
+app = Flask(__name__, static_url_path='', static_folder='build')
+CORS(app)
 
 
 @app.route('/')
