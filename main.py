@@ -24,7 +24,8 @@ def simulate():
     formatter = GraphFormatter(graph)
     result = {
         'edges': formatter.format_graph(),
-        'chart': formatter.format_chart()
+        'chart': formatter.format_chart(),
+        'metric': formatter.format_metrics()
     }
     return jsonify(result)
 
