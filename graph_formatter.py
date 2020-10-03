@@ -79,18 +79,19 @@ class GraphFormatter:
 
     def __routing_cost_metric(self):
         df = self.__all_path_lengths()
-        return (df['dist'] * df['count']).mean()
+        return (df['dist'] * df['count']).sum() / (df['count']).sum()
 
     def __fuel_cost_metric(self):
         df = self.__all_path_lengths(True)
-        return (df['dist'] * df['count']).mean()
+        return (df['dist'] * df['count']).sum() / (df['count']).sum()
 
     def format_graph(self):
         return self.df.to_dict('records')
 
-    def format_graph_sample(self, max_nodes=500):
-        sampled_nodes = random.sample(self.graph.nodes, max_nodes)
-        sampled_graph = self.graph.subgraph(sampled_nodes)
+    def format_graph_sample(self, max_depth=10):
+        random_node = random.choice(list(self.graph.nodes))
+        nodes_in_reach = nx.algorithms.bfs_tree(self.graph, random_node, depth_limit=max_depth).nodes()
+        sampled_graph = self.graph.subgraph(nodes_in_reach)
         return self.format_graph_to_df(sampled_graph).to_dict('records')
 
     def format_chart(self):

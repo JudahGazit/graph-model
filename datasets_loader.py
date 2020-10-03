@@ -1,3 +1,6 @@
+import json
+import os
+import threading
 from collections import namedtuple
 
 import pandas as pd
@@ -33,18 +36,34 @@ class DatasetsLoader:
 class DatasetsResultCache:
     __datasets_loader = DatasetsLoader()
     __result_cache = {}
+    __lock = threading.Lock()
+
+    def get_from_cache(self, dataset_name):
+        if dataset_name not in self.__result_cache:
+            if os.path.isfile(f'result_cache/{dataset_name}.json'):
+                with open(f'result_cache/{dataset_name}.json') as f:
+                    result = json.loads(f.read())
+                self.__result_cache[dataset_name] = result
+        return self.__result_cache.get(dataset_name)
+
+    def write_to_cache(self, dataset_name, payload):
+        self.__result_cache[dataset_name] = payload
+        if not os.path.isfile(f'result_cache/{dataset_name}.json'):
+            with open(f'result_cache/{dataset_name}.json', 'w') as f:
+                f.write(json.dumps(payload))
 
     def get_results(self, dataset_name):
-        if dataset_name not in self.__result_cache:
-            graph = self.__datasets_loader.load(dataset_name)
-            formatter = GraphFormatter(graph)
-            result = {
-                'edges': formatter.format_graph_sample(),
-                'chart': formatter.format_chart(),
-                'metric': formatter.format_metrics()
-            }
-            self.__result_cache[dataset_name] = result
-        return self.__result_cache[dataset_name]
+        with self.__lock:
+            if not self.get_from_cache(dataset_name):
+                graph = self.__datasets_loader.load(dataset_name)
+                formatter = GraphFormatter(graph)
+                result = {
+                    'edges': formatter.format_graph_sample(),
+                    'chart': formatter.format_chart(),
+                    'metric': formatter.format_metrics()
+                }
+                self.write_to_cache(dataset_name, result)
+        return self.get_from_cache(dataset_name)
 
 
 if __name__ == '__main__':
