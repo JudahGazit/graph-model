@@ -11,11 +11,6 @@ CORS(app)
 dataset_result_cache = DatasetsResultCache()
 
 
-@app.route('/')
-def serve_html():
-    return app.send_static_file('index.html')
-
-
 @app.route('/api')
 def simulate():
     leaves = request.args.get('leaves')
@@ -37,6 +32,12 @@ def simulate():
 def load_dataset(dataset):
     result = dataset_result_cache.get_results(dataset)
     return jsonify(result)
+
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path>')
+def serve_html(path):
+    return app.send_static_file('index.html')
 
 
 if __name__ == '__main__':

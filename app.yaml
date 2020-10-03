@@ -1,12 +1,6 @@
-runtime: python37
+runtime: python38
 default_expiration: "1s"
 
 handlers:
-- url: /
-  script: auto
-
 - url: /build
   static_dir: build
-
-- url: /.*
-  script: auto
