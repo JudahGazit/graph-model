@@ -24,6 +24,20 @@ DATASETS = {
                                format='graphml',
                                label='Street Network'
                                ),
+    'internet': Dataset(location='datasets/internet',
+                        format='csv',
+                        label='Internet',
+                        src='src',
+                        dst='dst',
+                        weight='weight',
+                      ),
+    'railroads': Dataset(location='datasets/railroads',
+                         format='csv',
+                         label='Rail Roads',
+                         src='from_id',
+                         dst='to_id',
+                         weight='weight',
+                         ),
 }
 
 

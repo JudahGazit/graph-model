@@ -39,8 +39,8 @@ class GraphFormatter:
 
     def __degree_dist_chart(self):
         degree_histogram = nx.degree_histogram(self.graph)
-        result = {'x': list(range(len(degree_histogram))),
-                  'y': degree_histogram}
+        result = {'x': list(range(len(degree_histogram)))[:500],
+                  'y': degree_histogram[:500]}
         return result
 
     def __node_path_length_dist_chart(self, weight=False, bins=False):
@@ -53,13 +53,14 @@ class GraphFormatter:
         gb = pd.DataFrame(df.flatten())
         gb.columns = ['dist']
         gb['count'] = 0
+        gb = gb[gb['dist'] < float('inf')]
         gb = gb.groupby(['dist'], as_index=False).agg({'count': 'count'})
         return gb
 
     def __all_path_lengths(self, weight=False):
         if self.all_shortest_paths[weight] is None:
             print(f'shortest path started - weight={weight}')
-            indices = random.sample(list(self.graph.nodes()), 1000)
+            indices = random.sample(list(self.graph.nodes()), min([1000, self.graph.number_of_nodes()]))
             all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(self.sparse_matrix, directed=False,
                                                                          unweighted=not weight, indices=indices)
             print('shortest path is done')
@@ -85,7 +86,7 @@ class GraphFormatter:
     def format_graph_sample(self, max_depth=10):
         random_node = random.choice(list(self.graph.nodes))
         nodes_in_reach = nx.algorithms.bfs_tree(self.graph, random_node, depth_limit=max_depth).nodes()
-        sampled_graph = self.graph.subgraph(nodes_in_reach)
+        sampled_graph = self.graph.subgraph(list(nodes_in_reach)[:500])
         return self.format_graph_to_df(sampled_graph).to_dict('records')
 
     def format_chart(self):
