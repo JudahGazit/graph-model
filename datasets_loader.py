@@ -5,32 +5,63 @@ from collections import namedtuple
 
 import pandas as pd
 import networkx as nx
+from scipy.io import loadmat
 
 from graph_formatter import GraphFormatter
 
-Dataset = namedtuple('Dataset', ['location', 'src', 'dst', 'weight'])
+dataset_fields = ['location', 'src', 'dst', 'weight', 'format', 'label']
+Dataset = namedtuple('Dataset', dataset_fields, defaults=(None, ) * len(dataset_fields))
 
 DATASETS = {
-    'europe-highvoltage': Dataset(location='datasets/gridkit_europe-highvoltage-links.csv',
-                                  src='v_id_1',
-                                  dst='v_id_2',
-                                  weight='length_m'),
-    'america-highvoltage': Dataset(location='datasets/gridkit_north_america-highvoltage-links.csv',
-                                      src='v_id_1',
-                                      dst='v_id_2',
-                                      weight='length_m'),
+    'highvoltage': Dataset(location='datasets/highvoltage',
+                           src='v_id_1',
+                           dst='v_id_2',
+                           weight='length_m',
+                           format='csv',
+                           label='High Voltage'
+                           ),
+    'street_network': Dataset(location='datasets/street_networks',
+                               format='graphml',
+                               label='Street Network'
+                               ),
 }
 
 
 class DatasetsLoader:
+    def __init__(self):
+        self.loaders = {
+            'csv': self.load_csv,
+            'graphml': self.load_graphml
+        }
+
     def load(self, dataset_name):
-        dataset = DATASETS[dataset_name]
-        df = pd.read_csv(dataset.location)[[dataset.src, dataset.dst, dataset.weight]]
+        category, dataset_name = dataset_name.split('/', 1)
+        dataset = DATASETS[category]
+        graph = self.loaders[dataset.format](dataset_name, dataset)
+        graph = nx.convert_node_labels_to_integers(graph)
+        return graph
+
+    def load_csv(self, dataset_name, dataset):
+        df = pd.read_csv(f'{dataset.location}/{dataset_name}.csv')[[dataset.src, dataset.dst, dataset.weight]]
         df.columns = ['src', 'dst', 'weight']
         graph = nx.Graph()
         graph.add_weighted_edges_from(df.values)
-        graph = nx.convert_node_labels_to_integers(graph)
         return graph
+
+    def load_graphml(self, dataset_name, dataset):
+        graph = nx.read_graphml(f'{dataset.location}/{dataset_name}.graphml')
+        return graph
+
+    def fetch_options(self):
+        result = []
+        for category in DATASETS:
+            datasets_input = [dataset.rsplit('.', 1)[0] for dataset in os.listdir(DATASETS[category].location)]
+            datasets_cache = [dataset.rsplit('.', 1)[0] for dataset in os.listdir(f'result_cache/{category}')]
+            datasets = sorted(set(datasets_input + datasets_cache))
+            result.append({"name": category, "label": DATASETS[category].label,
+                           "options": [{"name": dataset, "label": dataset} for dataset in datasets]
+                           })
+        return result
 
 
 class DatasetsResultCache:
@@ -65,7 +96,6 @@ class DatasetsResultCache:
                 self.write_to_cache(dataset_name, result)
         return self.get_from_cache(dataset_name)
 
+    def fetch_options(self):
+        return self.__datasets_loader.fetch_options()
 
-if __name__ == '__main__':
-    dataset_cache = DatasetsResultCache()
-    print(dataset_cache.get_results('america-highvoltage'))

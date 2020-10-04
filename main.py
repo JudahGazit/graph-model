@@ -28,11 +28,17 @@ def simulate():
     return jsonify(result)
 
 
-@app.route('/api/dataset/<dataset>')
-def load_dataset(dataset):
-    result = dataset_result_cache.get_results(dataset)
+@app.route('/api/dataset/')
+def load_dataset():
+    category = request.args.get('category')
+    dataset = request.args.get('dataset')
+    result = dataset_result_cache.get_results('/'.join([category, dataset]))
     return jsonify(result)
 
+@app.route('/api/datasets')
+def load_datasets():
+    data = dataset_result_cache.fetch_options()
+    return jsonify(data)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path>')

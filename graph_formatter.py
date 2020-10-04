@@ -1,17 +1,16 @@
-import functools
 import random
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 import scipy.sparse
-from tqdm import tqdm
 
 
 class GraphFormatter:
     def __init__(self, graph: nx.Graph):
         self.graph = graph
         self.df = self.format_graph_to_df(graph)
-        self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph)
+        self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph, dtype=np.int)
         self.all_shortest_paths = {True: None, False: None}
 
     def format_graph_to_df(self, graph):
@@ -51,23 +50,18 @@ class GraphFormatter:
         return result
 
     def __group_by_matrix(self, df):
-        gb = {}
-        for row in tqdm(range(len(df))):
-            for col in range(row, len(df)):
-                cell = df[row][col]
-                if cell < float('inf'):
-                    cell = int(cell)
-                    if cell not in gb:
-                        gb[cell] = 0
-                    gb[cell] += 1
-        gb = pd.DataFrame(gb.items(), columns=['dist', 'count'])
+        gb = pd.DataFrame(df.flatten())
+        gb.columns = ['dist']
+        gb['count'] = 0
+        gb = gb.groupby(['dist'], as_index=False).agg({'count': 'count'})
         return gb
 
     def __all_path_lengths(self, weight=False):
         if self.all_shortest_paths[weight] is None:
             print(f'shortest path started - weight={weight}')
+            indices = random.sample(list(self.graph.nodes()), 1000)
             all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(self.sparse_matrix, directed=False,
-                                                                         unweighted=not weight)
+                                                                         unweighted=not weight, indices=indices)
             print('shortest path is done')
             gb = self.__group_by_matrix(all_pairs_shortest_path)
             print('group by is done')
@@ -105,6 +99,8 @@ class GraphFormatter:
 
     def format_metrics(self):
         return {
+            'number-of-nodes': self.graph.number_of_nodes(),
+            'number-of-edges': self.graph.number_of_edges(),
             'wiring-cost': self.__wiring_cost_metric(),
             'routing-cost': self.__routing_cost_metric(),
             'fuel-cost': self.__fuel_cost_metric(),
