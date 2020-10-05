@@ -10,7 +10,7 @@ from scipy.io import loadmat
 from graph_formatter import GraphFormatter
 
 dataset_fields = ['location', 'src', 'dst', 'weight', 'format', 'label']
-Dataset = namedtuple('Dataset', dataset_fields, defaults=(None, ) * len(dataset_fields))
+Dataset = namedtuple('Dataset', dataset_fields, defaults=(None,) * len(dataset_fields))
 
 DATASETS = {
     'highvoltage': Dataset(location='datasets/highvoltage',
@@ -21,16 +21,16 @@ DATASETS = {
                            label='High Voltage'
                            ),
     'street_network': Dataset(location='datasets/street_networks',
-                               format='graphml',
-                               label='Street Network'
-                               ),
+                              format='graphml',
+                              label='Street Network'
+                              ),
     'internet': Dataset(location='datasets/internet',
                         format='csv',
                         label='Internet',
                         src='src',
                         dst='dst',
                         weight='weight',
-                      ),
+                        ),
     'railroads': Dataset(location='datasets/railroads',
                          format='csv',
                          label='Rail Roads',
@@ -39,13 +39,19 @@ DATASETS = {
                          weight='weight',
                          ),
     'brain_nets': Dataset(location='datasets/brain_nets',
-                         format='csv',
-                         label='Brain Nets',
-                         src='Source',
-                         dst='Target',
-                         weight='Weight',
-                         ),
+                          format='csv',
+                          label='Brain Nets',
+                          src='Source',
+                          dst='Target',
+                          weight='Weight',
+                          ),
 }
+
+
+def list_dir(dir_name):
+    if os.path.isdir(dir_name):
+        return os.listdir(dir_name)
+    return []
 
 
 class DatasetsLoader:
@@ -76,8 +82,8 @@ class DatasetsLoader:
     def fetch_options(self):
         result = []
         for category in DATASETS:
-            datasets_input = [dataset.rsplit('.', 1)[0] for dataset in os.listdir(DATASETS[category].location)]
-            datasets_cache = [dataset.rsplit('.', 1)[0] for dataset in os.listdir(f'result_cache/{category}')]
+            datasets_input = [dataset.rsplit('.', 1)[0] for dataset in list_dir(DATASETS[category].location)]
+            datasets_cache = [dataset.rsplit('.', 1)[0] for dataset in list_dir(f'result_cache/{category}')]
             datasets = sorted(set(datasets_input + datasets_cache))
             result.append({"name": category, "label": DATASETS[category].label,
                            "options": [{"name": dataset, "label": dataset} for dataset in datasets]
