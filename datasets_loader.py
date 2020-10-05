@@ -38,6 +38,13 @@ DATASETS = {
                          dst='to_id',
                          weight='weight',
                          ),
+    'brain_nets': Dataset(location='datasets/brain_nets',
+                         format='csv',
+                         label='Brain Nets',
+                         src='Source',
+                         dst='Target',
+                         weight='Weight',
+                         ),
 }
 
 
