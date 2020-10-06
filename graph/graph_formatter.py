@@ -1,9 +1,12 @@
 import random
+from collections import namedtuple
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.sparse
+
+from graph.MetricResult import MetricResult
 
 
 class GraphFormatter:
@@ -12,6 +15,7 @@ class GraphFormatter:
         self.df = self.format_graph_to_df(graph)
         self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph, dtype=np.int)
         self.all_shortest_paths = {True: None, False: None}
+        self.normalization_factor = self.__heaviest_edge_weight(graph)
 
     def format_graph_to_df(self, graph):
         result = []
@@ -70,15 +74,16 @@ class GraphFormatter:
         return self.all_shortest_paths[weight]
 
     def __wiring_cost_metric(self):
-        return self.graph.size("weight")
+        return MetricResult(self.graph.size("weight"), self.normalization_factor)
 
     def __routing_cost_metric(self):
         df = self.__all_path_lengths()
-        return (df['dist'] * df['count']).sum() / (df['count']).sum()
+        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum())
 
     def __fuel_cost_metric(self):
         df = self.__all_path_lengths(True)
-        return (df['dist'] * df['count']).sum() / (df['count']).sum()
+        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(),
+                            self.normalization_factor)
 
     def format_graph(self):
         return self.df.to_dict('records')
@@ -88,6 +93,10 @@ class GraphFormatter:
         nodes_in_reach = nx.algorithms.bfs_tree(self.graph, random_node, depth_limit=max_depth).nodes()
         sampled_graph = self.graph.subgraph(list(nodes_in_reach)[:500])
         return self.format_graph_to_df(sampled_graph).to_dict('records')
+
+    def __heaviest_edge_weight(self, graph):
+        weights = [graph.edges[edge]['weight'] for edge in graph.edges]
+        return max(weights)
 
     def format_chart(self):
         charts = {
@@ -99,10 +108,12 @@ class GraphFormatter:
         return charts
 
     def format_metrics(self):
-        return {
-            'number-of-nodes': self.graph.number_of_nodes(),
-            'number-of-edges': self.graph.number_of_edges(),
+        metrics = {
+            'number-of-nodes': MetricResult(self.graph.number_of_nodes()),
+            'number-of-edges': MetricResult(self.graph.number_of_edges()),
             'wiring-cost': self.__wiring_cost_metric(),
             'routing-cost': self.__routing_cost_metric(),
             'fuel-cost': self.__fuel_cost_metric(),
         }
+        metrics = {name: metric.to_dict() for name, metric in metrics.items()}
+        return metrics

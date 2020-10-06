@@ -5,9 +5,9 @@ from collections import namedtuple
 
 import pandas as pd
 import networkx as nx
-from scipy.io import loadmat
+from tqdm import tqdm
 
-from graph_formatter import GraphFormatter
+from graph.graph_formatter import GraphFormatter
 
 dataset_fields = ['location', 'src', 'dst', 'weight', 'format', 'label']
 Dataset = namedtuple('Dataset', dataset_fields, defaults=(None,) * len(dataset_fields))
@@ -25,11 +25,8 @@ DATASETS = {
                               label='Street Network'
                               ),
     'internet': Dataset(location='datasets/internet',
-                        format='csv',
-                        label='Internet',
-                        src='src',
-                        dst='dst',
-                        weight='weight',
+                        format='graphml',
+                        label='Internet'
                         ),
     'railroads': Dataset(location='datasets/railroads',
                          format='csv',
@@ -126,3 +123,11 @@ class DatasetsResultCache:
     def fetch_options(self):
         return self.__datasets_loader.fetch_options()
 
+
+if __name__ == '__main__':
+    drc = DatasetsResultCache()
+    for category in drc.fetch_options():
+        print(category['name'])
+        for option in tqdm(category['options']):
+            print(option['name'])
+            drc.get_results('/'.join([category['name'], option['name']]))

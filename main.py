@@ -1,9 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from datasets_loader import DatasetsResultCache
-from graph_formatter import GraphFormatter
-from graph_simulator import GraphSimulator
+from graph.datasets_loader import DatasetsResultCache
+from graph.graph_formatter import GraphFormatter
+from graph.graph_simulator import GraphSimulator
 
 app = Flask(__name__, static_url_path='', static_folder='build')
 CORS(app)
@@ -35,10 +35,12 @@ def load_dataset():
     result = dataset_result_cache.get_results('/'.join([category, dataset]))
     return jsonify(result)
 
+
 @app.route('/api/datasets')
 def load_datasets():
     data = dataset_result_cache.fetch_options()
     return jsonify(data)
+
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path>')
