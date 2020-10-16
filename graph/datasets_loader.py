@@ -2,46 +2,29 @@ import json
 import os
 import threading
 from collections import namedtuple
+from multiprocessing.pool import Pool
 
 import pandas as pd
 import networkx as nx
 from tqdm import tqdm
 
+from graph.datasets.brain_nets import BrainNet
+from graph.datasets.graph_categories import CsvGraphCategory
+from graph.datasets.high_voltage import HighVoltageCategory
+from graph.datasets.internet import Internet
+from graph.datasets.street_network import StreetNetwork
 from graph.graph_formatter import GraphFormatter
 
-dataset_fields = ['location', 'src', 'dst', 'weight', 'format', 'label']
-Dataset = namedtuple('Dataset', dataset_fields, defaults=(None,) * len(dataset_fields))
-
 DATASETS = {
-    'highvoltage': Dataset(location='datasets/highvoltage',
-                           src='v_id_1',
-                           dst='v_id_2',
-                           weight='length_m',
-                           format='csv',
-                           label='High Voltage'
-                           ),
-    'street_network': Dataset(location='datasets/street_networks',
-                              format='graphml',
-                              label='Street Network'
-                              ),
-    'internet': Dataset(location='datasets/internet',
-                        format='graphml',
-                        label='Internet'
-                        ),
-    'railroads': Dataset(location='datasets/railroads',
-                         format='csv',
-                         label='Rail Roads',
-                         src='from_id',
-                         dst='to_id',
-                         weight='weight',
-                         ),
-    'brain_nets': Dataset(location='datasets/brain_nets',
-                          format='csv',
-                          label='Brain Nets',
-                          src='Source',
-                          dst='Target',
-                          weight='Weight',
-                          ),
+    'highvoltage': HighVoltageCategory('High Voltage', 'datasets/highvoltage'),
+    'street_network': StreetNetwork('Street Network', 'datasets/street_networks'),
+    'internet': Internet('Internet', 'datasets/internet'),
+    'railroads': CsvGraphCategory('Rail Roads', 'datasets/railroads',
+                                  src='from_id',
+                                  dst='to_id',
+                                  weight='weight',
+                                  override_weights=False),
+    'brain_nets': BrainNet('Brain Nets', 'datasets/brain_nets'),
 }
 
 
@@ -52,40 +35,14 @@ def list_dir(dir_name):
 
 
 class DatasetsLoader:
-    def __init__(self):
-        self.loaders = {
-            'csv': self.load_csv,
-            'graphml': self.load_graphml
-        }
-
     def load(self, dataset_name):
         category, dataset_name = dataset_name.split('/', 1)
-        dataset = DATASETS[category]
-        graph = self.loaders[dataset.format](dataset_name, dataset)
-        graph = nx.convert_node_labels_to_integers(graph)
-        return graph
+        graph_category = DATASETS[category]
+        return graph_category.load(dataset_name)
 
-    def load_csv(self, dataset_name, dataset):
-        df = pd.read_csv(f'{dataset.location}/{dataset_name}.csv')[[dataset.src, dataset.dst, dataset.weight]]
-        df.columns = ['src', 'dst', 'weight']
-        graph = nx.Graph()
-        graph.add_weighted_edges_from(df.values)
-        return graph
-
-    def load_graphml(self, dataset_name, dataset):
-        graph = nx.read_graphml(f'{dataset.location}/{dataset_name}.graphml')
-        return graph
-
-    def fetch_options(self):
-        result = []
-        for category in DATASETS:
-            datasets_input = [dataset.rsplit('.', 1)[0] for dataset in list_dir(DATASETS[category].location)]
-            datasets_cache = [dataset.rsplit('.', 1)[0] for dataset in list_dir(f'result_cache/{category}')]
-            datasets = sorted(set(datasets_input + datasets_cache))
-            result.append({"name": category, "label": DATASETS[category].label,
-                           "options": [{"name": dataset, "label": dataset} for dataset in datasets]
-                           })
-        return result
+    @property
+    def categories(self):
+        return DATASETS
 
 
 class DatasetsResultCache:
@@ -120,14 +77,34 @@ class DatasetsResultCache:
                 self.write_to_cache(dataset_name, result)
         return self.get_from_cache(dataset_name)
 
-    def fetch_options(self):
-        return self.__datasets_loader.fetch_options()
+    def options(self):
+        result = []
+        for category in self.__datasets_loader.categories:
+            datasets_input = self.__datasets_loader.categories[category].options
+            datasets_cache = [dataset.rsplit('.', 1)[0] for dataset in list_dir(f'result_cache/{category}')]
+            datasets = sorted(set(datasets_input + datasets_cache))
+            result.append({"name": category, "label": DATASETS[category].label,
+                           "options": [{"name": dataset, "label": dataset} for dataset in datasets]
+                           })
+        return result
 
+def every_option(option):
+    try:
+        drc_local = DatasetsResultCache()
+        drc_local.get_results(option)
+    except Exception as e:
+        print(f'ERROR {option}: {e}')
 
 if __name__ == '__main__':
+    import glob
+    csv_files = glob.glob('./result_cache/*/*.json')
+    # for csv_file in csv_files:
+    #     os.remove(csv_file)
     drc = DatasetsResultCache()
-    for category in drc.fetch_options():
+    pool = Pool(8)
+    for category in drc.options():
         print(category['name'])
-        for option in tqdm(category['options']):
-            print(option['name'])
-            drc.get_results('/'.join([category['name'], option['name']]))
+        m = map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
+        # for option in tqdm(category['options']):
+        #     print(option['name'])
+        #     drc.get_results('/'.join([category['name'], option['name']]))

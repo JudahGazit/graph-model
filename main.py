@@ -38,7 +38,7 @@ def load_dataset():
 
 @app.route('/api/datasets')
 def load_datasets():
-    data = dataset_result_cache.fetch_options()
+    data = dataset_result_cache.options()
     return jsonify(data)
 
 
