@@ -4,3 +4,4 @@ networkx~=2.5
 flask_cors
 scipy~=1.5.2
 tqdm
+geopy
