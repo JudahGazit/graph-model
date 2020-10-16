@@ -3,7 +3,7 @@ import networkx as nx
 from geopy.distance import geodesic
 import pandas as pd
 
-from graph.datasets.graph_categories import CsvGraphCategory
+from graph.graph_categories.graph_categories import CsvGraphCategory
 
 
 class HighVoltageCategory(CsvGraphCategory):

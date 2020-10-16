@@ -2,7 +2,7 @@ from typing import Callable
 import pandas as pd
 import networkx as nx
 
-from graph.datasets.graph_categories import CsvGraphCategory
+from graph.graph_categories.graph_categories import CsvGraphCategory
 
 
 class BrainNet(CsvGraphCategory):
@@ -21,6 +21,3 @@ class BrainNet(CsvGraphCategory):
             return node_distances.loc[(int(u), int(v))][self.weight]
 
         return distance
-
-
-bn = BrainNet('BN', 'datasets/brain_nets').load('Addax_FinalFinal2')

@@ -8,11 +8,11 @@ import pandas as pd
 import networkx as nx
 from tqdm import tqdm
 
-from graph.datasets.brain_nets import BrainNet
-from graph.datasets.graph_categories import CsvGraphCategory
-from graph.datasets.high_voltage import HighVoltageCategory
-from graph.datasets.internet import Internet
-from graph.datasets.street_network import StreetNetwork
+from graph.graph_categories.brain_nets import BrainNet
+from graph.graph_categories.graph_categories import CsvGraphCategory
+from graph.graph_categories.high_voltage import HighVoltageCategory
+from graph.graph_categories.internet import Internet
+from graph.graph_categories.street_network import StreetNetwork
 from graph.graph_formatter import GraphFormatter
 
 DATASETS = {

@@ -6,7 +6,7 @@ import pandas as pd
 import scipy.sparse
 
 from graph.MetricResult import MetricResult
-from graph.datasets.graph_categories import GraphDataset
+from graph.graph_categories.graph_categories import GraphDataset
 
 
 class GraphFormatter:
