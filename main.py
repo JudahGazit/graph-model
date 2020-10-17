@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from graph.datasets_loader import DatasetsResultCache
 from graph.graph_formatter import GraphFormatter
+from graph.graph_optimizer import GraphOptimizer
 from graph.graph_simulator import GraphSimulator
 
 app = Flask(__name__, static_url_path='', static_folder='build')
@@ -40,6 +41,25 @@ def load_dataset():
 def load_datasets():
     data = dataset_result_cache.options()
     return jsonify(data)
+
+
+@app.route('/api/optimizer/')
+def optimize():
+    num_nodes = request.args.get('nodes')
+    mean_degree = request.args.get('degree')
+    wiring_factor = request.args.get('wiring')
+    routing_factor = request.args.get('routing')
+    fuel_factor = request.args.get('fuel')
+    num_edges = int(num_nodes) * float(mean_degree) / 2
+    optimizer = GraphOptimizer(int(num_nodes), int(num_edges), float(wiring_factor), float(routing_factor), float(fuel_factor))
+    graph_dataset = optimizer.optimize()
+    formatter = GraphFormatter(graph_dataset)
+    result = {
+        'edges': formatter.format_graph(),
+        'chart': formatter.format_chart(),
+        'metric': formatter.format_metrics()
+    }
+    return jsonify(result)
 
 
 @app.route('/', defaults={'path': ''})
