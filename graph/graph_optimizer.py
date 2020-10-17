@@ -8,7 +8,6 @@ import scipy.sparse
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_formatter import GraphFormatter
 
 
 def __group_by_matrix(df):
