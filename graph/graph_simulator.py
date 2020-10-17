@@ -3,6 +3,8 @@ import random
 
 import networkx as nx
 
+from graph.graph_categories.graph_categories import GraphDataset
+
 
 def perimeter_distance(a, b, num_leaves):
     b_to_a = (abs(b - a) / num_leaves) * 2 * math.pi
@@ -47,4 +49,5 @@ class GraphSimulator:
                     p = get_probability(self.num_leaves, self.A, self.B, self.alpha, self.beta, i, j)
                     if randomize_in_prob(p):
                         graph.add_edge(i, j, weight=perimeter_distance(i, j, self.num_leaves))
-        return graph
+        graph_dataset = GraphDataset(graph, lambda u, v: perimeter_distance(u, v, self.num_leaves))
+        return graph_dataset

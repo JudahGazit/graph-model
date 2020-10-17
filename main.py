@@ -18,8 +18,8 @@ def simulate():
     B = request.args.get('B')
     alpha = request.args.get('alpha')
     beta = request.args.get('beta')
-    graph = GraphSimulator(2 ** int(leaves), float(A), float(B), float(alpha), float(beta)).simulate()
-    formatter = GraphFormatter(graph)
+    graph_dataset = GraphSimulator(2 ** int(leaves), float(A), float(B), float(alpha), float(beta)).simulate()
+    formatter = GraphFormatter(graph_dataset)
     result = {
         'edges': formatter.format_graph(),
         'chart': formatter.format_chart(),
