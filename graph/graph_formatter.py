@@ -14,7 +14,7 @@ class GraphFormatter:
         self.graph = graph.graph
         self.distances = graph.distances
         self.df = self.format_graph_to_df(self.graph)
-        self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph, dtype=np.int)
+        self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph, dtype=np.float)
         self.all_shortest_paths = {True: None, False: None}
         self.normalization_factor = self.__heaviest_edge_weight(self.graph)
         self.distances_bins = self.__distances_bins(self.graph, self.distances)

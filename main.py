@@ -11,7 +11,6 @@ CORS(app)
 
 dataset_result_cache = DatasetsResultCache()
 
-
 @app.route('/api')
 def simulate():
     leaves = request.args.get('leaves')
@@ -50,8 +49,9 @@ def optimize():
     wiring_factor = request.args.get('wiring')
     routing_factor = request.args.get('routing')
     fuel_factor = request.args.get('fuel')
+    method = request.args.get('method')
     num_edges = int(num_nodes) * float(mean_degree) / 2
-    optimizer = GraphOptimizer(int(num_nodes), int(num_edges), float(wiring_factor), float(routing_factor), float(fuel_factor))
+    optimizer = GraphOptimizer(int(num_nodes), int(num_edges), float(wiring_factor), float(routing_factor), float(fuel_factor), method)
     graph_dataset = optimizer.optimize()
     formatter = GraphFormatter(graph_dataset)
     result = {
