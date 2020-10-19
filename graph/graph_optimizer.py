@@ -1,8 +1,6 @@
 import math
 import random
-from datetime import time, datetime
-
-from pathos.multiprocessing import Pool
+from datetime import datetime
 
 import networkx as nx
 import numpy as np
@@ -10,10 +8,10 @@ import pandas as pd
 import scipy.optimize
 import scipy.sparse
 import scipy.special
+from pathos.multiprocessing import Pool
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-import matplotlib.pyplot as plt
 
 POOL_SIZE = 4
 
@@ -108,7 +106,6 @@ class GraphOptimizer:
         min_arg = min(local_min_args, key=self._target_func)
         result = np.multiply(self.distance_matrix, min_arg)
         graph = nx.from_numpy_matrix(result)
-        plt.show()
         return GraphDataset(graph, lambda u, v: perimeter_distance(u, v, self.num_nodes))
 
 

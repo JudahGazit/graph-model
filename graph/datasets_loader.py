@@ -1,12 +1,8 @@
+import glob
 import json
 import os
 import threading
-from collections import namedtuple
 from multiprocessing.pool import Pool
-
-import pandas as pd
-import networkx as nx
-from tqdm import tqdm
 
 from graph.graph_categories.brain_nets import BrainNet
 from graph.graph_categories.graph_categories import CsvGraphCategory
@@ -88,6 +84,7 @@ class DatasetsResultCache:
                            })
         return result
 
+
 def every_option(option):
     try:
         drc_local = DatasetsResultCache()
@@ -95,16 +92,19 @@ def every_option(option):
     except Exception as e:
         print(f'ERROR {option}: {e}')
 
+
 if __name__ == '__main__':
-    import glob
-    csv_files = glob.glob('./result_cache/*/*.json')
-    # for csv_file in csv_files:
-    #     os.remove(csv_file)
+    json_files = glob.glob('./result_cache/*/*.json')
+    # print(json_files)
+    # for json_file in json_files:
+    #     print(json_file)
+    #     os.remove(json_file)
     drc = DatasetsResultCache()
     pool = Pool(8)
     for category in drc.options():
         print(category['name'])
-        m = map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
+        m = pool.map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
+        list(m)
         # for option in tqdm(category['options']):
         #     print(option['name'])
         #     drc.get_results('/'.join([category['name'], option['name']]))
