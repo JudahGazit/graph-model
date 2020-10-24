@@ -8,7 +8,6 @@ import pandas as pd
 import scipy.optimize
 import scipy.sparse
 import scipy.special
-from pathos.multiprocessing import Pool
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
@@ -39,9 +38,10 @@ class GraphOptimizer:
         return mat
 
     def __all_path_lengths(self, matrix, weight=False):
-        indices = random.sample(range(self.num_nodes), min([1000, self.num_nodes]))
+        sample_size = min([1000, self.num_nodes])
+        indices = random.sample(range(self.num_nodes), sample_size) if sample_size != self.num_nodes else None
         all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(matrix, directed=False,
-                                                                     unweighted=not weight, indices=indices)
+                                                                     unweighted=not weight, indices=indices, method='J')
         gb = pd.DataFrame(all_pairs_shortest_path.flatten(), columns=['dist'])
         gb['count'] = 0
         gb = gb[gb['dist'] < float('inf')].groupby(['dist'], as_index=False).agg({'count': 'count'})
@@ -96,14 +96,9 @@ class GraphOptimizer:
         total_possible_edges = int(self.num_nodes * (self.num_nodes - 1) / 2)
         iterations = 100 * stirling_approx_ln_choose(total_possible_edges,
                                                      self.num_edges)  # Stirling Approx. of ln(n choose k) for n >> k
-        print(iterations)
         iterations = max([int(iterations), 10000])
         iterations = min([iterations, 15000])
-        pool = Pool(POOL_SIZE)
-        local_min_args = pool.map(lambda _:
-                                  self.minimize_by_random(int(iterations / POOL_SIZE), total_possible_edges),
-                                  range(POOL_SIZE))
-        min_arg = min(local_min_args, key=self._target_func)
+        min_arg = self.minimize_by_random(iterations, total_possible_edges)
         result = np.multiply(self.distance_matrix, min_arg)
         graph = nx.from_numpy_matrix(result)
         return GraphDataset(graph, lambda u, v: perimeter_distance(u, v, self.num_nodes))
