@@ -8,6 +8,7 @@ from graph.graph_categories.brain_nets import BrainNet
 from graph.graph_categories.graph_categories import CsvGraphCategory
 from graph.graph_categories.high_voltage import HighVoltageCategory
 from graph.graph_categories.internet import Internet
+from graph.graph_categories.roads import Roads
 from graph.graph_categories.street_network import StreetNetwork
 from graph.graph_formatter import GraphFormatter
 
@@ -21,6 +22,7 @@ DATASETS = {
                                   weight='weight',
                                   override_weights=False),
     'brain_nets': BrainNet('Brain Nets', 'datasets/brain_nets'),
+    'roads': Roads('Roads Network', 'datasets/roads')
 }
 
 
@@ -94,17 +96,24 @@ def every_option(option):
 
 
 if __name__ == '__main__':
-    json_files = glob.glob('./result_cache/*/*.json')
+    # json_files = glob.glob('./result_cache/*/*.json')
     # print(json_files)
     # for json_file in json_files:
     #     print(json_file)
     #     os.remove(json_file)
+    graph = DatasetsLoader().load('roads/uk').graph
+    print('loaded graph')
+    import networkx as nx
+    comps = list(nx.connected_components(graph))
+    print('calculated comps')
+    giant = max(comps, key=len)
+    nx.write_graphml(graph.subgraph(giant), 'datasets/roads/uk_mainland.graphml')
+    print('created giant')
     drc = DatasetsResultCache()
-    pool = Pool(8)
-    for category in drc.options():
-        print(category['name'])
-        m = pool.map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
-        list(m)
-        # for option in tqdm(category['options']):
-        #     print(option['name'])
-        #     drc.get_results('/'.join([category['name'], option['name']]))
+    # pool = Pool(8)
+    # for category in drc.options():
+    #     print(category['name'])
+    #     m = pool.map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
+    #     list(m)
+    #
+    drc.get_results('roads/uk_mainland')

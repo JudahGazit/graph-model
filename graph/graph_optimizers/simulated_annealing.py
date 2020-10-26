@@ -1,16 +1,8 @@
-import json
-import math
 import random
-
-from pathos.multiprocessing import ProcessPool
-from simanneal import Annealer
-import networkx as nx
-import numpy as np
 import signal
 
-from graph.distances import perimeter_distance
-from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_formatter import GraphFormatter
+from simanneal import Annealer
+
 from graph.graph_optimizers.graph_cost import GraphCost
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 
@@ -45,8 +37,7 @@ class _GraphAnnealer(Annealer):
 
 class SimulatedAnnealing(GraphOptimizerBase):
     def _optimal_matrix(self):
-        initial_edges = random.sample(range(self._total_possible_edges), self.num_edges)
-        initial_edges_vec = [1 if i in initial_edges else 0 for i in range(self._total_possible_edges)]
+        initial_edges_vec = self._randomize_edges()
         annealer = _GraphAnnealer(self.graph_cost, initial_edges_vec)
         auto_schedule = annealer.auto(1)
         annealer.set_schedule(auto_schedule)

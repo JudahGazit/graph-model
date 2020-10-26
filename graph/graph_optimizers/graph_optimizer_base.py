@@ -1,4 +1,5 @@
 import abc
+import random
 
 import networkx as nx
 import numpy as np
@@ -17,6 +18,11 @@ class GraphOptimizerBase(abc.ABC):
 
     def _optimal_matrix(self):
         raise NotImplementedError()
+
+    def _randomize_edges(self):
+        edges_indices = random.sample(range(self._total_possible_edges), self.num_edges)
+        edges_vec = [1 if i in edges_indices else 0 for i in range(self._total_possible_edges)]
+        return edges_vec
 
     def optimize(self):
         min_arg = self._optimal_matrix()
