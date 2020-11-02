@@ -11,8 +11,13 @@ class MetricResult:
     def normalized_value(self):
         return self.__value / self.__normalization_factor
 
+    @property
+    def normalization_factor(self):
+        return self.__normalization_factor
+
     def to_dict(self):
         return {
             "value": self.value,
-            "normalized_value": self.normalized_value
+            "normalized_value": self.normalized_value,
+            "normalized_factor": self.normalization_factor
         }
