@@ -1,4 +1,7 @@
+import logging
+
 from flask import Flask, jsonify, request
+from flask.logging import default_handler
 from flask_cors import CORS
 
 from graph.datasets_loader import DatasetsResultCache
@@ -10,6 +13,7 @@ app = Flask(__name__, static_url_path='', static_folder='build')
 CORS(app)
 
 dataset_result_cache = DatasetsResultCache()
+app.logger.setLevel(logging.INFO)
 
 @app.route('/api')
 def simulate():
