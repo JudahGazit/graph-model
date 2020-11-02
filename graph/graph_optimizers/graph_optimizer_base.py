@@ -10,7 +10,7 @@ from graph.graph_optimizers.graph_cost import GraphCost
 
 
 class GraphOptimizerBase(abc.ABC):
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method='minimize'):
+    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method):
         self.graph_cost = GraphCost(num_nodes, wiring_factor, routing_factor, fuel_factor, method)
         self.num_nodes = num_nodes
         self.num_edges = num_edges
