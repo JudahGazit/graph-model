@@ -1,11 +1,10 @@
 import random
 
 import networkx as nx
-import numpy as np
 import pandas as pd
-import scipy.sparse
 
-from graph.MetricResult import MetricResult
+from graph.graph_metrics import GraphMetrics
+from graph.metric_result import MetricResult
 from graph.graph_categories.graph_categories import GraphDataset
 
 
@@ -14,10 +13,8 @@ class GraphFormatter:
         self.graph = graph.graph
         self.distances = graph.distances
         self.df = self.format_graph_to_df(self.graph)
-        self.sparse_matrix = nx.to_scipy_sparse_matrix(self.graph, dtype=np.float)
-        self.all_shortest_paths = {True: None, False: None}
-        self.normalization_factor = self.__heaviest_edge_weight(self.graph)
         self.distances_bins = self.__distances_bins(self.graph, self.distances)
+        self.graph_metrics = GraphMetrics(graph)
 
     def format_graph_to_df(self, graph):
         result = []
@@ -56,42 +53,10 @@ class GraphFormatter:
         return result
 
     def __node_path_length_dist_chart(self, weight=False, bins=False):
-        df = self.__all_path_lengths(weight)
+        df = self.graph_metrics.all_path_lengths(weight)
         df = self.__agg_df(df, "dist", "count", bins, method="sum")
         result = df.to_dict('list')
         return result
-
-    def __group_by_matrix(self, df):
-        gb = pd.DataFrame(df.flatten())
-        gb.columns = ['dist']
-        gb['count'] = 0
-        gb = gb[gb['dist'] < float('inf')]
-        gb = gb.groupby(['dist'], as_index=False).agg({'count': 'count'})
-        return gb
-
-    def __all_path_lengths(self, weight=False):
-        if self.all_shortest_paths[weight] is None:
-            print(f'shortest path started - weight={weight}')
-            indices = random.sample(list(self.graph.nodes()), min([1000, self.graph.number_of_nodes()]))
-            all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(self.sparse_matrix, directed=False,
-                                                                         unweighted=not weight, indices=indices)
-            print('shortest path is done')
-            gb = self.__group_by_matrix(all_pairs_shortest_path)
-            print('group by is done')
-            self.all_shortest_paths[weight] = gb
-        return self.all_shortest_paths[weight]
-
-    def __wiring_cost_metric(self):
-        return MetricResult(self.graph.size("weight"), self.normalization_factor)
-
-    def __routing_cost_metric(self):
-        df = self.__all_path_lengths()
-        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum())
-
-    def __fuel_cost_metric(self):
-        df = self.__all_path_lengths(True)
-        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(),
-                            self.normalization_factor)
 
     def format_graph(self):
         return self.df.to_dict('records')
@@ -117,12 +82,14 @@ class GraphFormatter:
         return charts
 
     def format_metrics(self):
+        number_of_nodes = self.graph.number_of_nodes()
+        number_of_edges = self.graph.number_of_edges()
         metrics = {
-            'number-of-nodes': MetricResult(self.graph.number_of_nodes()),
-            'number-of-edges': MetricResult(self.graph.number_of_edges()),
-            'wiring-cost': self.__wiring_cost_metric(),
-            'routing-cost': self.__routing_cost_metric(),
-            'fuel-cost': self.__fuel_cost_metric(),
+            'number-of-nodes': MetricResult(number_of_nodes, number_of_nodes),
+            'number-of-edges': MetricResult(number_of_edges, number_of_edges),
+            'wiring-cost': self.graph_metrics.wiring_cost(),
+            'routing-cost': self.graph_metrics.routing_cost(),
+            'fuel-cost': self.graph_metrics.fuel_cost(),
         }
         metrics = {name: metric.to_dict() for name, metric in metrics.items()}
         return metrics

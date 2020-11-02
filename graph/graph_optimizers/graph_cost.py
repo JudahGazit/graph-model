@@ -5,6 +5,8 @@ import pandas as pd
 import scipy.sparse
 
 from graph.distances import perimeter_distance
+from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_metrics import GraphMetrics
 
 
 class GraphCost:
@@ -21,29 +23,15 @@ class GraphCost:
                       for i in range(self.num_nodes)])
         return mat
 
-    def __all_path_lengths(self, matrix, weight=False):
-        sample_size = min([1000, self.num_nodes])
-        indices = random.sample(range(self.num_nodes), sample_size) if sample_size != self.num_nodes else None
-        all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(matrix, directed=False,
-                                                                     unweighted=not weight, indices=indices, method='D')
-        gb = pd.DataFrame(all_pairs_shortest_path.flatten(), columns=['dist'])
-        gb['count'] = 0
-        gb = gb[gb['dist'] < float('inf')].groupby(['dist'], as_index=False).agg({'count': 'count'})
-        return gb
-
     def __calculate_total_cost(self, matrix):
         total_cost = 0
+        graph_metrics = GraphMetrics(GraphDataset(None, lambda i, j: self.distance_matrix[i, j]), matrix)
         if self.wiring_factor:
-            wiring = matrix.sum() / 2
-            total_cost += self.wiring_factor * wiring
+            total_cost += self.wiring_factor * graph_metrics.wiring_cost().normalized_value
         if self.routing_factor:
-            routing = self.__all_path_lengths(matrix, False)
-            routing = (routing['dist'] * routing['count']).sum() / (routing['count']).sum()
-            total_cost += self.routing_factor * routing
+            total_cost += self.routing_factor * graph_metrics.routing_cost().normalized_value
         if self.fuel_factor:
-            fuel = self.__all_path_lengths(matrix, True)
-            fuel = (fuel['dist'] * fuel['count']).sum() / (fuel['count']).sum()
-            total_cost += self.fuel_factor * fuel
+            total_cost += self.fuel_factor * graph_metrics.fuel_cost().normalized_value
         return total_cost
 
     def triangular_index(self, i, row_index=0):
