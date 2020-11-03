@@ -7,3 +7,4 @@ tqdm
 geopy
 pulp
 pathos
+skopt
