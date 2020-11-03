@@ -1,3 +1,4 @@
+import logging
 import random
 
 import networkx as nx
@@ -7,6 +8,8 @@ from graph.graph_metrics import GraphMetrics
 from graph.metric_result import MetricResult
 from graph.graph_categories.graph_categories import GraphDataset
 
+
+logger = logging.getLogger('main')
 
 class GraphFormatter:
     def __init__(self, graph: GraphDataset):
@@ -62,9 +65,11 @@ class GraphFormatter:
         return self.df.to_dict('records')
 
     def format_graph_sample(self, max_depth=10):
+        logger.debug('start formatting graph sample')
         random_node = random.choice(list(self.graph.nodes))
         nodes_in_reach = nx.algorithms.bfs_tree(self.graph, random_node, depth_limit=max_depth).nodes()
         sampled_graph = self.graph.subgraph(list(nodes_in_reach)[:500])
+        logger.debug('end formatting graph sample')
         return self.format_graph_to_df(sampled_graph).to_dict('records')
 
     def __heaviest_edge_weight(self, graph):
@@ -79,9 +84,11 @@ class GraphFormatter:
             'node-path-len-dist': self.__node_path_length_dist_chart(),
             'nodes-distance-dist': self.__node_path_length_dist_chart(True, True)
         }
+        logger.debug('end formatting charts')
         return charts
 
     def format_metrics(self):
+        logger.debug('start formatting metrics')
         number_of_nodes = self.graph.number_of_nodes()
         number_of_edges = self.graph.number_of_edges()
         metrics = {
@@ -92,6 +99,7 @@ class GraphFormatter:
             'fuel-cost': self.graph_metrics.fuel_cost(),
         }
         metrics = {name: metric.to_dict() for name, metric in metrics.items()}
+        logger.debug('end formatting metrics')
         return metrics
 
     def __distances_bins(self, graph, distances, bins=20):

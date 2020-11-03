@@ -1,8 +1,6 @@
-import glob
 import json
 import os
 import threading
-from multiprocessing.pool import Pool
 
 from graph.graph_categories.brain_nets import BrainNet
 from graph.graph_categories.graph_categories import CsvGraphCategory
@@ -85,35 +83,3 @@ class DatasetsResultCache:
                            "options": [{"name": dataset, "label": dataset} for dataset in datasets]
                            })
         return result
-
-
-def every_option(option):
-    try:
-        drc_local = DatasetsResultCache()
-        drc_local.get_results(option)
-    except Exception as e:
-        print(f'ERROR {option}: {e}')
-
-
-if __name__ == '__main__':
-    # json_files = glob.glob('./result_cache/*/*.json')
-    # print(json_files)
-    # for json_file in json_files:
-    #     print(json_file)
-    #     os.remove(json_file)
-    graph = DatasetsLoader().load('roads/uk').graph
-    print('loaded graph')
-    import networkx as nx
-    comps = list(nx.connected_components(graph))
-    print('calculated comps')
-    giant = max(comps, key=len)
-    nx.write_graphml(graph.subgraph(giant), 'datasets/roads/uk_mainland.graphml')
-    print('created giant')
-    drc = DatasetsResultCache()
-    # pool = Pool(8)
-    # for category in drc.options():
-    #     print(category['name'])
-    #     m = pool.map(every_option, ['/'.join([category['name'], option['name']]) for option in category['options']])
-    #     list(m)
-    #
-    drc.get_results('roads/uk_mainland')

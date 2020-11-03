@@ -20,6 +20,7 @@ class GraphMetrics:
         self.number_of_nodes = self.graph.number_of_nodes() if self.graph else self.sparse_matrix.shape[0]
         self.number_of_edges = self.graph.number_of_edges() if self.graph else np.count_nonzero(self.sparse_matrix)
         self.all_shortest_paths = {True: None, False: None}
+        self.mean_edge_distance = None
 
     def __group_by_matrix(self, mat: np.ndarray):
         gb = pd.DataFrame(mat.flatten())
@@ -28,6 +29,14 @@ class GraphMetrics:
         gb = gb[gb['dist'] < float('inf')]
         gb = gb.groupby(['dist'], as_index=False).agg({'count': 'count'})
         return gb
+
+    def __mean_edge_distance(self):
+        if self.mean_edge_distance is None:
+            random_starts = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
+            random_ends = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
+            mean_distance = np.array([self.distances(u, v) for u in random_starts for v in random_ends if u != v]).mean()
+            self.mean_edge_distance = mean_distance
+        return self.mean_edge_distance
 
     def all_path_lengths(self, weight=False) -> pd.DataFrame:
         if self.all_shortest_paths[weight] is None:
@@ -42,25 +51,29 @@ class GraphMetrics:
         return self.all_shortest_paths[weight]
 
     def wiring_cost(self):
-        mean_weight = np.array(
-            [self.distances(u, v) for u in range(self.number_of_nodes) for v in range(self.number_of_nodes) if
-             u != v]).mean()
+        logger.debug('start wiring cost')
+        mean_weight = self.__mean_edge_distance()
         expected_in_random_network = mean_weight * self.number_of_edges
-        return MetricResult(self.sparse_matrix.sum() / 2, expected_in_random_network)
+        result = MetricResult(self.sparse_matrix.sum() / 2, expected_in_random_network)
+        logger.debug('end wiring cost')
+        return result
 
     def routing_cost(self):
+        logger.debug('start routing cost')
         mean_degree = 2 * self.number_of_edges / self.number_of_nodes
         expected_in_random_network = math.log(self.number_of_nodes) / math.log(mean_degree)
         df = self.all_path_lengths(False)
-        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(), expected_in_random_network)
+        result = MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(), expected_in_random_network)
+        logger.debug('end routing cost')
+        return result
 
     def fuel_cost(self):
+        logger.debug('start fuel cost')
         mean_degree = 2 * self.number_of_edges / self.number_of_nodes
-        mean_weight = np.array(
-            [self.distances(u, v) for u in range(self.number_of_nodes) for v in range(self.number_of_nodes) if
-             u != v]).mean()
+        mean_weight = self.__mean_edge_distance()
         expected_routing_cost = math.log(self.number_of_nodes) / math.log(mean_degree)
         expected_in_random_netowrk = mean_weight * expected_routing_cost
         df = self.all_path_lengths(True)
-        return MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(),
-                            expected_in_random_netowrk)
+        result = MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(), expected_in_random_netowrk)
+        logger.debug('end fuel cost')
+        return result
