@@ -8,12 +8,14 @@ from graph.datasets_loader import DatasetsResultCache
 from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizer import GraphOptimizer
 from graph.graph_simulator import GraphSimulator
+from graph.multiple_simulations_loader import MultipleOptimizationsLoader
 
 app = Flask(__name__, static_url_path='', static_folder='build')
 CORS(app)
 
 dataset_result_cache = DatasetsResultCache()
 app.logger.setLevel(logging.INFO)
+
 
 @app.route('/api')
 def simulate():
@@ -55,7 +57,8 @@ def optimize():
     fuel_factor = request.args.get('fuel')
     method = request.args.get('method')
     num_edges = int(num_nodes) * float(mean_degree) / 2
-    optimizer = GraphOptimizer(int(num_nodes), int(num_edges), float(wiring_factor), float(routing_factor), float(fuel_factor), method)
+    optimizer = GraphOptimizer(int(num_nodes), int(num_edges), float(wiring_factor), float(routing_factor),
+                               float(fuel_factor), method)
     graph_dataset = optimizer.optimize()
     formatter = GraphFormatter(graph_dataset)
     result = {
@@ -64,6 +67,21 @@ def optimize():
         'metric': formatter.format_metrics()
     }
     return jsonify(result)
+
+
+@app.route('/api/optimizer/multiple/')
+def load_premade_optimizations():
+    loader = MultipleOptimizationsLoader()
+    num_nodes = request.args.get('nodes')
+    num_edges = request.args.get('edges')
+    wiring_factor = request.args.get('wiring')
+    routing_factor = request.args.get('routing')
+    fuel_factor = request.args.get('fuel')
+    if num_nodes:
+        data = loader.load(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor)
+    else:
+        data = loader.options
+    return jsonify(data)
 
 
 @app.route('/', defaults={'path': ''})
