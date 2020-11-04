@@ -5,6 +5,7 @@ import os
 import random
 import sys
 from glob import glob
+from shutil import rmtree
 
 import numpy as np
 import pandas as pd
@@ -14,13 +15,14 @@ from pathos.multiprocessing import ProcessPool
 from graph.datasets_loader import DatasetsResultCache
 from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizer import GraphOptimizer
+from graph.graph_simulator import GraphSimulator
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
 
 def randomize(i):
-    N, p = random.randint(10, 2000), random.random() / 2
+    N, p = random.randint(10, 2000), random.random() * (0.5 - 1e-3) + 1e-3
     simulate = GraphSimulator(N, p, 0, 0, 0).simulate()
     metrics = GraphFormatter(simulate).format_metrics()
     degree = pd.DataFrame(dict(simulate.graph.degree).items(), columns=['key', 'degree'])
@@ -89,10 +91,13 @@ def optimize_multiple_times(map_func, times, nodes, edges, w, r, f, optimizer='g
     result_folder = f'optimize_results/{nodes}_{edges}/{w}_{r}_{f}'
     if overwrite:
         try:
-            os.rmdir(result_folder)
-            os.mkdir(result_folder)
+            rmtree(result_folder)
         except:
             logger.warning(f'could not overwrite {result_folder}')
+    try:
+        os.makedirs(result_folder)
+    except:
+        logger.warning(f'could not create {result_folder}')
 
     def optimize(i):
         print(w, r, f)
@@ -103,13 +108,13 @@ def optimize_multiple_times(map_func, times, nodes, edges, w, r, f, optimizer='g
             F.write(json.dumps({'metrics': formatter.format_metrics(), 'chart': formatter.format_chart()}, indent=True))
         return res
 
-    return map_func(optimize, range(times), [w] * times, [r] * times, [f] * times)
+    return map_func(optimize, range(times))
 
 
 def create_optimized_graphs():
 
-    pool = ProcessPool(20)
-    times, nodes, edges = 100, 200, 4350
+    pool = ProcessPool(8)
+    times, nodes, edges = 100, 30, 60
     values = optimize_multiple_times(pool.map,  times, nodes, edges, 1, 0, 0)
     values += optimize_multiple_times(pool.map, times, nodes, edges, 0, 1, 0)
     values += optimize_multiple_times(pool.map, times, nodes, edges, 0, 0, 1)
@@ -143,6 +148,6 @@ def run_all_datasets():
 
 if __name__ == '__main__':
     create_random_graphs()
-    run_all_datasets()
-    create_optimized_graphs()
+    # run_all_datasets()
+    # create_optimized_graphs()
 

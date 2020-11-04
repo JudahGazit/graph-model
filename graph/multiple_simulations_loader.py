@@ -22,7 +22,7 @@ class MultipleOptimizationsLoader:
         unioned_charts = {}
         for chart in charts[0]:
             x = charts[0][chart]['x']
-            ys = [c[chart]['y'] for c in charts]
+            ys = [c[chart]['y'] + ([0] * (len(x) - len(c[chart]['y']))) for c in charts]
             y_mean = np.mat(list(zip(*ys))).mean(axis=1).flatten().tolist()[0]
             unioned_charts[chart] = {
                 'x': x,
