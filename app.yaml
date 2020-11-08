@@ -1,10 +1,2 @@
-runtime: python38
-default_expiration: "1s"
-
-handlers:
-- url: /build
-  static_dir: build
-
-- url: /favicon\.ico
-  static_files: favicon.ico
-  upload: favicon\.ico
+runtime: custom
+env: flex
