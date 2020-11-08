@@ -6,7 +6,7 @@ from ui.optimize import optimize
 from ui.simulate import simulate
 
 actions = {
-    'Simulate': simulate,
+    'Simulate (Circular)': simulate,
     'Datasets': datasets,
     'Cost Optimize': optimize,
     'Previous Optimizations': multiple_optimizations

@@ -6,12 +6,12 @@ import numpy as np
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_optimizers.graph_cost import GraphCost
+from graph.graph_optimizers.graph_cost import GraphCost, GraphCostFacade
 
 
 class GraphOptimizerBase(abc.ABC):
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method):
-        self.graph_cost = GraphCost(num_nodes, wiring_factor, routing_factor, fuel_factor, method)
+    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
+        self.graph_cost = GraphCostFacade().get_cost(num_nodes, wiring_factor, routing_factor, fuel_factor, method, cost_type)
         self.num_nodes = num_nodes
         self.num_edges = num_edges
         self._total_possible_edges = int(self.num_nodes * (self.num_nodes - 1) / 2)

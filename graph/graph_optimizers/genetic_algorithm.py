@@ -4,8 +4,8 @@ from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 
 
 class GeneticAlgorithm(GraphOptimizerBase):
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, n_gen=200, n_parents=10, mutation_rate=0.05):
-        super().__init__(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method)
+    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, n_gen=200, n_parents=10, mutation_rate=0.05):
+        super().__init__(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
         self.n_gen = n_gen
         self.n_parents = n_parents
         self.mutation_rate = mutation_rate

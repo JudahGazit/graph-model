@@ -16,9 +16,9 @@ import re
 
 def multiple_optimizations():
     loader = MultipleOptimizationsLoader()
-    st.sidebar.text('(Nodes, Edges, Wiring, Routing, Fuel)')
+    st.sidebar.text('(Topology, Nodes, Edges, Wiring, Routing, Fuel)')
     selected_option = st.sidebar.radio('Parameters', options=[
-        f'({o.nodes}, {o.edges}, {o.wiring_factor}, {o.routing_factor}, {o.fuel_factor})'
+        f'({o.cost_type}, {o.nodes}, {o.edges}, {o.wiring_factor}, {o.routing_factor}, {o.fuel_factor})'
         for o in loader.options
     ])
     selected_option = selected_option[1:-1]

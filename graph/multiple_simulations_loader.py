@@ -7,7 +7,7 @@ from glob import glob
 from collections import namedtuple
 
 SimulationOptions = namedtuple('SimulationOptions',
-                               ['nodes', 'edges', 'wiring_factor', 'routing_factor', 'fuel_factor'])
+                               ['cost_type', 'nodes', 'edges', 'wiring_factor', 'routing_factor', 'fuel_factor'])
 
 
 class MultipleOptimizationsLoader:
@@ -33,13 +33,13 @@ class MultipleOptimizationsLoader:
 
     @property
     def options(self):
-        options = glob('optimize_results/*_*/*_*_*')
+        options = glob('optimize_results/*/*_*/*_*_*')
         options = [re.split('[\\\\_/]', option)[2:] for option in options]
         options = [SimulationOptions(*option) for option in options]
         return options
 
-    def load(self, nodes, edges, wiring_factor, routing_factor, fuel_factor):
-        files = glob(f'optimize_results/{nodes}_{edges}/{wiring_factor}_{routing_factor}_{fuel_factor}/*.json')
+    def load(self, cost_type, nodes, edges, wiring_factor, routing_factor, fuel_factor):
+        files = glob(f'optimize_results/{cost_type}/{nodes}_{edges}/{wiring_factor}_{routing_factor}_{fuel_factor}/*.json')
         data = [json.loads(open(filename).read()) for filename in files]
         metrics = [d['metrics'] for d in data]
         charts = [d['chart'] for d in data]

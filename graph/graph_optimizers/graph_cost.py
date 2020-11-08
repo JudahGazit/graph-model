@@ -1,15 +1,18 @@
+import abc
+import math
 import random
 
 import numpy as np
 import pandas as pd
 import scipy.sparse
+from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
 from graph.graph_metrics import GraphMetrics
 
 
-class GraphCost:
+class GraphCost(abc.ABC):
     def __init__(self, num_nodes, wiring_factor, routing_factor, fuel_factor, method):
         self.num_nodes = num_nodes
         self.wiring_factor = wiring_factor
@@ -18,8 +21,11 @@ class GraphCost:
         self.distance_matrix = self._create_distance_matrix()
         self.routing_factor = routing_factor
 
+    def _distance(self, i, j):
+        raise NotImplementedError
+
     def _create_distance_matrix(self):
-        mat = np.mat([[perimeter_distance(i, j, self.num_nodes) for j in range(self.num_nodes)]
+        mat = np.mat([[self._distance(i, j) for j in range(self.num_nodes)]
                       for i in range(self.num_nodes)])
         return mat
 
@@ -53,3 +59,24 @@ class GraphCost:
             next(vec_iter) if j > i else 0 for j in range(self.num_nodes)
         ] for i in range(self.num_nodes)])
         return mat + mat.transpose()
+
+
+class GraphCostCircular(GraphCost):
+    def _distance(self, i, j):
+        return perimeter_distance(i, j, self.num_nodes)
+
+
+class GraphCostLattice(GraphCost):
+    def _distance(self, i, j):
+        n = int(math.sqrt(self.num_nodes))
+        i_location = i % n, int(i / n)
+        j_location = j % n, int(j / n)
+        return euclidean(i_location, j_location)
+
+
+class GraphCostFacade:
+    type_mapping = {'circular': GraphCostCircular, 'lattice': GraphCostLattice}
+
+    def get_cost(self, num_nodes, wiring_factor, routing_factor, fuel_factor, method, type, *args, **kwargs):
+        cost_class = self.type_mapping[type]
+        return cost_class(num_nodes, wiring_factor, routing_factor, fuel_factor, method, *args, **kwargs)

@@ -1,6 +1,3 @@
-import streamlit as st
-import networkx as nx
-
 from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizer import GraphOptimizer
 from ui.utils import *
@@ -10,32 +7,47 @@ current_graph = None
 
 
 def _get_parameters():
-    global last_parameters
-    num_nodes = st.sidebar.slider('Number of Nodes', 10, 300)
-    mean_degree = st.sidebar.slider('Mean Degree', 1.0, 10.0, step=0.01)
+    cost_type = st.sidebar.selectbox('Network Type', ['circular', 'lattice'])
+    num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
+        'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
+    mean_degree = st.sidebar.slider('Mean Degree', 1.5, 10.0, 2.0, step=0.01)
     wiring_factor = st.sidebar.slider('Wiring Factor', 0.0, 1.0, step=0.01)
     routing_factor = st.sidebar.slider('Routing Factor', 0.0, 1.0, step=0.01)
     fuel_factor = st.sidebar.slider('Fuel Factor', 0.0, 1.0, step=0.01)
     method = st.sidebar.select_slider('Method', ['minimize', 'maximize'])
     num_edges = int(num_nodes * mean_degree / 2)
-    return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method
+    return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type
+
+
+def _display_graph_by_cost_type(graph, cost_type):
+    if cost_type == 'circular':
+        display_graph_in_circle(graph)
+    elif cost_type == 'lattice':
+        display_graph_as_lattice(graph)
+
+
+def _initial_graph(num_nodes, cost_type):
+    if cost_type == 'circular':
+        return nx.circular_ladder_graph(num_nodes)
+    if cost_type == 'lattice':
+        return nx.grid_2d_graph(int(math.sqrt(num_nodes)), int(math.sqrt(num_nodes)))
 
 
 def optimize():
     global last_parameters, current_graph
-    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method = _get_parameters()
-    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method)
+    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type = _get_parameters()
+    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
     start_simulation = st.sidebar.button('Start Optimization (might take a while)')
 
     if start_simulation and last_parameters != (
-    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method):
+    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
         current_graph = optimizer.optimize()
-        last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method)
+        last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
 
-    if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method):
+    if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
         formatter = GraphFormatter(current_graph)
-        display_graph_in_circle(current_graph.graph)
+        _display_graph_by_cost_type(current_graph.graph, cost_type)
         display_metrics(formatter.format_metrics())
         display_chart(formatter.format_chart())
     else:
-        display_graph_in_circle(nx.circular_ladder_graph(num_nodes))
+        _display_graph_by_cost_type(_initial_graph(num_nodes, cost_type), cost_type)

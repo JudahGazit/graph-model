@@ -17,7 +17,7 @@ CHART_NAME_MAPPING = {
 
 
 def display_graph(graph: nx.Graph, node_method=None, edge_method=None, engine='neato'):
-    for i, node in enumerate(sorted(graph.nodes)):
+    for i, node in enumerate(graph.nodes):
         if node_method:
             node_method(graph, node, i)
         graph.nodes[node]['width'] = "0.1"
@@ -50,6 +50,17 @@ def display_graph_naturally(graph: nx.Graph):
         graph.edges[edge]['len'] = 30 * graph.edges[edge]['weight'] / max_edge_weight
 
     display_graph(graph, edge_method=edge_method, engine='fdp')
+
+
+def display_graph_as_lattice(graph: nx.Graph):
+    n = int(math.sqrt(graph.number_of_nodes()))
+
+    def node_method(graph, node, node_index):
+        pos_x = node_index % n
+        pos_y = int(node_index / n)
+        graph.nodes[node]['pos'] = f'{pos_x},{pos_y}!'
+
+    display_graph(graph, node_method)
 
 
 def display_metrics(metrics):
@@ -91,7 +102,8 @@ def display_chart_with_mean_line(charts):
     chart = charts[chart_title]
     altair_charts = []
     for index, y_value in enumerate(chart['ys']):
-        c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title, height=500).mark_line()
+        c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
+                      height=500).mark_line()
         altair_charts.append(_encode_altair_chart(c, scale))
 
     altair_chart = reduce(lambda a, b: a + b, altair_charts)
