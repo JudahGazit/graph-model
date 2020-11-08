@@ -8,3 +8,4 @@ geopy
 pulp
 pathos
 simanneal
+streamlit
