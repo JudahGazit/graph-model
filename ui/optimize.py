@@ -14,7 +14,7 @@ def _get_parameters():
     wiring_factor = st.sidebar.slider('Wiring Factor', 0.0, 1.0, step=0.01)
     routing_factor = st.sidebar.slider('Routing Factor', 0.0, 1.0, step=0.01)
     fuel_factor = st.sidebar.slider('Fuel Factor', 0.0, 1.0, step=0.01)
-    method = st.sidebar.select_slider('Method', ['minimize', 'maximize'])
+    method = st.sidebar.select_slider('Method', ['minimize', 'maximize'], 'maximize')
     num_edges = int(num_nodes * mean_degree / 2)
     return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type
 
@@ -39,13 +39,12 @@ def optimize():
     optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
     start_simulation = st.sidebar.button('Start Optimization (might take a while)')
 
-    if start_simulation and last_parameters != (
-    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
+    if start_simulation:
         current_graph = optimizer.optimize()
         last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
 
     if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
-        formatter = GraphFormatter(current_graph)
+        formatter = GraphFormatter(current_graph, topology=cost_type)
         _display_graph_by_cost_type(current_graph.graph, cost_type)
         display_metrics(formatter.format_metrics())
         display_chart(formatter.format_chart())
