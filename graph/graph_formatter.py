@@ -9,15 +9,15 @@ from graph.metric_result import MetricResult
 from graph.graph_categories.graph_categories import GraphDataset
 
 
-logger = logging.getLogger('main')
+logger = logging.getLogger('formatter')
 
 class GraphFormatter:
-    def __init__(self, graph: GraphDataset):
+    def __init__(self, graph: GraphDataset, topology='circular'):
         self.graph = graph.graph
         self.distances = graph.distances
         self.df = self.format_graph_to_df(self.graph)
         self.distances_bins = self.__distances_bins(self.graph, self.distances)
-        self.graph_metrics = GraphMetrics(graph)
+        self.graph_metrics = GraphMetrics(graph, topology=topology)
 
     def format_graph_to_df(self, graph):
         result = []

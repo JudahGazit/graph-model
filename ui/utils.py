@@ -1,11 +1,10 @@
 import math
 from functools import reduce
 
+import altair as alt
 import networkx as nx
 import pandas as pd
-import pydot
 import streamlit as st
-import altair as alt
 
 CHART_NAME_MAPPING = {
     'edge-length-dist': 'Fiber Length Histogram',
@@ -60,14 +59,16 @@ def display_graph_as_lattice(graph: nx.Graph):
         pos_y = int(node_index / n)
         graph.nodes[node]['pos'] = f'{pos_x},{pos_y}!'
 
-    display_graph(graph, node_method)
+    def edge_method(graph, edge, node_index):
+        graph.edges[edge]['label'] = round(graph.edges[edge]['weight'], 3)
 
+    display_graph(graph, node_method, edge_method=None)
 
 def display_metrics(metrics):
     metric_df = [(metric, values['value'], values['normalized_value'], values.get('normalized_factor'))
                  for metric, values in metrics.items()]
     metric_df = pd.DataFrame(metric_df,
-                             columns=['Metric', 'Value', 'Normalized Value', 'Expected Value (in random net)'])
+                             columns=['Metric', 'Value', 'Efficiency', 'Expected Value (in best scenario)'])
     st.subheader('Metrics')
     st.dataframe(metric_df)
 

@@ -12,9 +12,13 @@ OPTIMIZERS = {
 
 
 class GraphOptimizer:
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method='minimize', cost_type='circular',
-                 optimizer='genetic'):
-        self.optimizer = OPTIMIZERS[optimizer](num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
+    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method='maximize', cost_type='circular',
+                 optimizer='genetic', **kwargs):
+        self.optimizer = OPTIMIZERS[optimizer](num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, **kwargs)
 
     def optimize(self):
         return self.optimizer.optimize()
+
+    @property
+    def graph_cost(self):
+        return self.optimizer.graph_cost

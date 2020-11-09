@@ -4,9 +4,8 @@ import random
 import networkx as nx
 import numpy as np
 
-from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_optimizers.graph_cost import GraphCost, GraphCostFacade
+from graph.graph_optimizers.graph_cost import GraphCostFacade
 
 
 class GraphOptimizerBase(abc.ABC):
@@ -28,4 +27,4 @@ class GraphOptimizerBase(abc.ABC):
         min_arg = self._optimal_matrix()
         result = np.multiply(self.graph_cost.distance_matrix, min_arg)
         graph = nx.from_numpy_matrix(result)
-        return GraphDataset(graph, lambda u, v: perimeter_distance(u, v, self.num_nodes))
+        return GraphDataset(graph, self.graph_cost.distance)

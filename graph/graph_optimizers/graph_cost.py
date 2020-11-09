@@ -1,10 +1,7 @@
 import abc
 import math
-import random
 
 import numpy as np
-import pandas as pd
-import scipy.sparse
 from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
@@ -21,17 +18,20 @@ class GraphCost(abc.ABC):
         self.distance_matrix = self._create_distance_matrix()
         self.routing_factor = routing_factor
 
-    def _distance(self, i, j):
-        raise NotImplementedError
+    def distance(self, i, j):
+        raise NotImplementedError()
+
+    def _create_graph_metrics(self, matrix):
+        raise NotImplementedError()
 
     def _create_distance_matrix(self):
-        mat = np.mat([[self._distance(i, j) for j in range(self.num_nodes)]
+        mat = np.mat([[self.distance(i, j) for j in range(self.num_nodes)]
                       for i in range(self.num_nodes)])
         return mat
 
     def __calculate_total_cost(self, matrix):
         total_cost = 0
-        graph_metrics = GraphMetrics(GraphDataset(None, lambda i, j: self.distance_matrix[i, j]), matrix)
+        graph_metrics = self._create_graph_metrics(matrix)
         if self.wiring_factor:
             total_cost += self.wiring_factor * graph_metrics.wiring_cost().normalized_value
         if self.routing_factor:
@@ -54,20 +54,25 @@ class GraphCost(abc.ABC):
         return method_factor * total_cost
 
     def triangular_to_mat(self, triangular_as_vec):
-        vec_iter = iter(triangular_as_vec)
-        mat = np.mat([[
-            next(vec_iter) if j > i else 0 for j in range(self.num_nodes)
-        ] for i in range(self.num_nodes)])
+        mat = np.zeros((self.num_nodes, self.num_nodes), dtype=np.int)
+        mat[np.triu_indices(self.num_nodes, 1)] = triangular_as_vec
         return mat + mat.transpose()
 
 
 class GraphCostCircular(GraphCost):
-    def _distance(self, i, j):
+    def _create_graph_metrics(self, matrix):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular')
+
+    def distance(self, i, j):
         return perimeter_distance(i, j, self.num_nodes)
 
 
+
 class GraphCostLattice(GraphCost):
-    def _distance(self, i, j):
+    def _create_graph_metrics(self, matrix):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice')
+
+    def distance(self, i, j):
         n = int(math.sqrt(self.num_nodes))
         i_location = i % n, int(i / n)
         j_location = j % n, int(j / n)

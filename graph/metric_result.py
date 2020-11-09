@@ -1,19 +1,8 @@
 class MetricResult:
-    def __init__(self, value, normalization_factor=1):
-        self.__value = value
-        self.__normalization_factor = normalization_factor
-
-    @property
-    def value(self):
-        return self.__value
-
-    @property
-    def normalized_value(self):
-        return self.__value / self.__normalization_factor
-
-    @property
-    def normalization_factor(self):
-        return self.__normalization_factor
+    def __init__(self, value, normalization_factor=1, normalized_value=None):
+        self.value = value
+        self.normalization_factor = normalization_factor or self.value * normalized_value
+        self.normalized_value = normalized_value or self.normalization_factor / self.value
 
     def to_dict(self):
         return {
