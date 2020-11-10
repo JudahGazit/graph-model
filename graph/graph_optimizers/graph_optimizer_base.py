@@ -19,7 +19,7 @@ class GraphOptimizerBase(abc.ABC):
         raise NotImplementedError()
 
     def _randomize_edges(self):
-        edges_indices = random.sample(range(self._total_possible_edges), self.num_edges)
+        edges_indices = set(random.sample(range(self._total_possible_edges), self.num_edges))
         edges_vec = [1 if i in edges_indices else 0 for i in range(self._total_possible_edges)]
         return edges_vec
 

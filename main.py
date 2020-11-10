@@ -17,7 +17,7 @@ actions = {
     'Previous Optimizations': multiple_optimizations
 }
 
-logging.basicConfig(force=True, stream=sys.stdout, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+logging.basicConfig(force=True, stream=sys.stdout, level=logging.INFO, format="%(asctime)s \t %(levelname)s \t %(name)s \t %(message)s")
 logger = logging.getLogger()
 
 if __name__ == '__main__':

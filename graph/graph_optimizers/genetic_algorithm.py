@@ -1,3 +1,5 @@
+import copy
+import matplotlib.pyplot as plt
 import numpy as np
 import logging
 import random
@@ -9,7 +11,7 @@ logger = logging.getLogger('genetic')
 
 
 class GeneticAlgorithm(GraphOptimizerBase):
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, n_gen=590, n_parents=100, mutation_rate=0.002, tol=80):
+    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, n_gen=600, n_parents=125, mutation_rate=0.05, tol=70):
         super().__init__(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
         self.n_gen = n_gen
         self.n_parents = n_parents
@@ -25,10 +27,10 @@ class GeneticAlgorithm(GraphOptimizerBase):
 
     def __crossover(self, population):
         new_population = list(population)
-        for index, edges in enumerate(population):
-            first_indices = np.flatnonzero(edges).tolist()
-            second_indices = np.flatnonzero(population[(index + 1) % len(population)]).tolist()
-            new_generation_indices = set(random.sample(list(set(first_indices + second_indices)), self.num_edges))
+        for first_edges, second_edges in zip(population[:-1], population[1:]):
+            first_indices = np.flatnonzero(first_edges).tolist()
+            second_indices = np.flatnonzero(second_edges).tolist()
+            new_generation_indices = random.sample(list(set(first_indices + second_indices)), self.num_edges)
             new_generation = np.zeros(self._total_possible_edges, np.int)
             for new_generation_index in new_generation_indices:
                 new_generation[new_generation_index] = 1
@@ -36,10 +38,13 @@ class GeneticAlgorithm(GraphOptimizerBase):
         return new_population
 
     def __mutation(self, population, mutation_rate):
-        population_nextgen = []
+        population_nextgen = copy.deepcopy(population)
         for edges in population:
-            for j in range(int(len(edges) * mutation_rate)):
-                random_u, random_v = random.randrange(len(edges)), random.randrange(len(edges))
+            not_zero_indices = np.flatnonzero(edges).tolist()
+            zero_indices = np.flatnonzero(np.array(edges) == 0).tolist()
+            number_of_mutations = min([int(len(edges) * mutation_rate), len(not_zero_indices), len(zero_indices)])
+            random_us, random_vs = random.sample(not_zero_indices, number_of_mutations), random.sample(zero_indices, number_of_mutations)
+            for random_u, random_v in zip(random_us, random_vs):
                 edges[random_u], edges[random_v] = edges[random_v], edges[random_u]
             population_nextgen.append(edges)
         return population_nextgen
