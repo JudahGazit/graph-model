@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import threading
 
@@ -10,6 +11,8 @@ from graph.graph_categories.roads import Roads
 from graph.graph_categories.street_network import StreetNetwork
 from graph.graph_formatter import GraphFormatter
 
+logger = logging.getLogger('dataset_loader')
+
 DATASETS = {
     'highvoltage': HighVoltageCategory('High Voltage', 'datasets/highvoltage'),
     'street_network': StreetNetwork('Street Network', 'datasets/street_networks'),
@@ -20,7 +23,7 @@ DATASETS = {
                                   weight='weight',
                                   override_weights=False),
     'brain_nets': BrainNet('Brain Nets', 'datasets/brain_nets'),
-    'roads': Roads('Roads Network', 'datasets/roads')
+    # 'roads': Roads('Roads Network', 'datasets/roads')
 }
 
 
@@ -34,7 +37,9 @@ class DatasetsLoader:
     def load(self, dataset_name):
         category, dataset_name = dataset_name.split('/', 1)
         graph_category = DATASETS[category]
-        return graph_category.load(dataset_name)
+        dataset = graph_category.load(dataset_name)
+        logger.info('loaded dataset %s', dataset_name)
+        return dataset
 
     @property
     def categories(self):
@@ -64,7 +69,7 @@ class DatasetsResultCache:
         with self.__lock:
             if not self.get_from_cache(dataset_name):
                 graph = self.__datasets_loader.load(dataset_name)
-                formatter = GraphFormatter(graph)
+                formatter = GraphFormatter(graph, topology='lattice')
                 result = {
                     'edges': formatter.format_graph_sample(),
                     'chart': formatter.format_chart(),
