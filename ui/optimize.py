@@ -11,9 +11,9 @@ def _get_parameters():
     num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
         'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
     mean_degree = st.sidebar.slider('Mean Degree', 1.5, 10.0, 2.0, step=0.01)
-    wiring_factor = st.sidebar.slider('Wiring Factor', 0.0, 1.0, step=0.01)
-    routing_factor = st.sidebar.slider('Routing Factor', 0.0, 1.0, step=0.01)
-    fuel_factor = st.sidebar.slider('Fuel Factor', 0.0, 1.0, step=0.01)
+    wiring_factor = st.sidebar.slider('Wiring Factor', -1.0, 1.0, 0.0, step=0.01)
+    routing_factor = st.sidebar.slider('Routing Factor', -1.0, 1.0, 0.0, step=0.01)
+    fuel_factor = st.sidebar.slider('Fuel Factor', -1.0, 1.0, 0.0, step=0.01)
     method = st.sidebar.select_slider('Method', ['minimize', 'maximize'], 'maximize')
     num_edges = int(num_nodes * mean_degree / 2)
     return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type
