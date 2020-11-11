@@ -77,6 +77,7 @@ class GraphFormatter:
         return max(weights)
 
     def format_chart(self):
+        logger.debug('start formatting charts')
         charts = {
             'edge-length-dist': self.__edge_length_dist_chart(),
             'edge-length-dist-dbins': self.__edge_length_dist_chart('distances'),
