@@ -17,11 +17,13 @@ class GraphCost(abc.ABC):
         self.method = method
         self.distance_matrix = self._create_distance_matrix()
         self.routing_factor = routing_factor
+        self.optimal_fuel_cost = None
+        self.optimal_wiring_cost = None
 
     def distance(self, i, j):
         raise NotImplementedError()
 
-    def _create_graph_metrics(self, matrix):
+    def _create_graph_metrics(self, matrix, **kwargs) -> GraphMetrics:
         raise NotImplementedError()
 
     def _create_distance_matrix(self):
@@ -31,13 +33,19 @@ class GraphCost(abc.ABC):
 
     def __calculate_total_cost(self, matrix):
         total_cost = 0
-        graph_metrics = self._create_graph_metrics(matrix)
+        graph_metrics = self._create_graph_metrics(matrix,
+                                                   optimal_fuel_cost=self.optimal_fuel_cost,
+                                                   optimal_wiring_cost=self.optimal_wiring_cost)
         if self.wiring_factor:
-            total_cost += self.wiring_factor * graph_metrics.wiring_cost().normalized_value
+            wiring_cost = graph_metrics.wiring_cost()
+            total_cost += self.wiring_factor * wiring_cost.normalized_value
+            self.optimal_wiring_cost = wiring_cost.normalization_factor
         if self.routing_factor:
             total_cost += self.routing_factor * graph_metrics.routing_cost().normalized_value
         if self.fuel_factor:
-            total_cost += self.fuel_factor * graph_metrics.fuel_cost().normalized_value
+            fuel_cost = graph_metrics.fuel_cost()
+            total_cost += self.fuel_factor * fuel_cost.normalized_value
+            self.optimal_fuel_cost = fuel_cost.normalization_factor
         return total_cost
 
     def triangular_index(self, i, row_index=0):
@@ -60,8 +68,8 @@ class GraphCost(abc.ABC):
 
 
 class GraphCostCircular(GraphCost):
-    def _create_graph_metrics(self, matrix):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular')
+    def _create_graph_metrics(self, matrix, **kwargs):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular', **kwargs)
 
     def distance(self, i, j):
         return perimeter_distance(i, j, self.num_nodes)
@@ -69,8 +77,8 @@ class GraphCostCircular(GraphCost):
 
 
 class GraphCostLattice(GraphCost):
-    def _create_graph_metrics(self, matrix):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice')
+    def _create_graph_metrics(self, matrix, **kwargs):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice', **kwargs)
 
     def distance(self, i, j):
         n = int(math.sqrt(self.num_nodes))
