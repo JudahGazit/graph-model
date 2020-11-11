@@ -1,4 +1,4 @@
-import random
+import math
 
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 
