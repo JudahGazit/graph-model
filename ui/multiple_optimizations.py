@@ -2,6 +2,10 @@ from graph.multiple_simulations_loader import MultipleOptimizationsLoader
 from ui.utils import *
 
 
+def format_parameters(params):
+    params = [str(round(float(s), 3)) if '*' not in s else s for s in params]
+    return ', '.join(params)
+
 def _get_parameters(loader):
     nodes_edges = {}
     for option in loader.options:
@@ -11,8 +15,8 @@ def _get_parameters(loader):
     selected_nodes_edges = st.sidebar.radio('(Topology, Nodes, Edges)', sorted(nodes_edges),
                                             format_func=lambda v: ', '.join(map(str, v)))
     selected_params = st.sidebar.radio('(Wiring, Routing, Fuel)',
-                                       sorted(nodes_edges[selected_nodes_edges], reverse=True),
-                                       format_func=lambda v: ', '.join(map(lambda s: str(round(float(s), 3)), v)))
+                                       sorted(nodes_edges[selected_nodes_edges], reverse=True) + [('*', '*', '*')],
+                                       format_func=format_parameters)
     selected_option = selected_nodes_edges + selected_params
     strategy = st.sidebar.select_slider('Strategy', ['best', 'mean'])
     return selected_option, strategy

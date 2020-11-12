@@ -59,21 +59,31 @@ class MultipleOptimizationsLoader:
         return options
 
     def _format_results(self, strategy, metrics, charts, edges, *factors):
+        is_floats = all(['*' not in v for v in factors])
         result = {
-            'edges': self._best_graph(edges, metrics, *factors)
+            'edges': self._best_graph(edges, metrics, *factors) if is_floats else []
         }
         if strategy == 'mean':
             result['metric'] = self._union_metrics(metrics)
             result['chart'] = self._union_charts(charts)
-        elif strategy == 'best':
+        elif strategy == 'best' and is_floats:
             result['metric'] = self._best_metric(metrics, *factors)
             result['chart'] = self._best_chart(charts, metrics, *factors)
+        return result
+
+    def _load_files(self, file_names):
+        result = []
+        for filename in file_names:
+            try:
+                result.append(json.loads(open(filename).read()))
+            except:
+                raise RuntimeError(f'falied to read `{filename}`')
         return result
 
     def load(self, strategy, cost_type, nodes, edges, wiring_factor, routing_factor, fuel_factor):
         files = glob(
             f'optimize_results/{cost_type}/{nodes}_{edges}/{wiring_factor}_{routing_factor}_{fuel_factor}/*.json')
-        data = [json.loads(open(filename).read()) for filename in files]
+        data = self._load_files(files)
         metrics = [d['metrics'] for d in data]
         charts = [d['chart'] for d in data]
         edges = [d.get('edges', []) for d in data]
