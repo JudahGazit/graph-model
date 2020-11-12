@@ -20,7 +20,7 @@ class GeneticAlgorithm(GraphOptimizerBase):
         self.n_parents = n_parents
         self.mutation_rate = mutation_rate
         self.tol = tol
-        self.pool = ThreadPool(2)
+        self.pool = ThreadPool(4)
 
     def __score_and_sort(self, population):
         scores = self.pool.map(lambda edges: self.graph_cost.cost(self.graph_cost.triangular_to_mat(edges)), population)
