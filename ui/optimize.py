@@ -15,8 +15,9 @@ def _get_parameters():
     routing_factor = st.sidebar.slider('Routing Factor', -1.0, 1.0, 0.0, step=0.01)
     fuel_factor = st.sidebar.slider('Fuel Factor', -1.0, 1.0, 0.0, step=0.01)
     method = st.sidebar.select_slider('Method', ['minimize', 'maximize'], 'maximize')
+    optimizer = st.sidebar.select_slider('Optimizer', ['annealing', 'genetic'])
     num_edges = int(num_nodes * mean_degree / 2)
-    return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type
+    return num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer
 
 
 def _display_graph_by_cost_type(graph, cost_type):
@@ -35,15 +36,15 @@ def _initial_graph(num_nodes, cost_type):
 
 def optimize():
     global last_parameters, current_graph
-    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type = _get_parameters()
-    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
+    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type = _get_parameters()
+    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type)
     start_simulation = st.sidebar.button('Start Optimization (might take a while)')
 
     if start_simulation:
         current_graph = optimizer.optimize()
-        last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
+        last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type)
 
-    if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type):
+    if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type):
         formatter = GraphFormatter(current_graph, topology=cost_type)
         _display_graph_by_cost_type(current_graph.graph, cost_type)
         display_metrics(formatter.format_metrics())
