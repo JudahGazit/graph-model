@@ -33,18 +33,26 @@ def _initial_graph(num_nodes, cost_type):
     if cost_type == 'lattice':
         return nx.grid_2d_graph(int(math.sqrt(num_nodes)), int(math.sqrt(num_nodes)))
 
+# @st.cache
+def optimize_graph(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type):
+    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type,
+                               optimizer_type)
+    return optimizer.optimize()
+
 
 def optimize():
     global last_parameters, current_graph
     num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type = _get_parameters()
-    optimizer = GraphOptimizer(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type)
     start_simulation = st.sidebar.button('Start Optimization (might take a while)')
 
     if start_simulation:
-        current_graph = optimizer.optimize()
-        last_parameters = (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type)
+        current_graph = optimize_graph(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method,
+                                       cost_type, optimizer_type)
+        last_parameters = (
+        num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type)
 
-    if last_parameters == (num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type):
+    if last_parameters == (
+    num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, optimizer_type):
         formatter = GraphFormatter(current_graph, topology=cost_type)
         _display_graph_by_cost_type(current_graph.graph, cost_type)
         display_metrics(formatter.format_metrics())
