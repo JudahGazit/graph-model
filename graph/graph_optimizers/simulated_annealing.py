@@ -23,7 +23,7 @@ def create_state(matrix):
 class _GraphAnnealer(Annealer):
     Tmax = 1
     Tmin = 1e-15
-    steps = 10000
+    steps = 25000
     updates = 200
 
     def copy_state(self, state):
