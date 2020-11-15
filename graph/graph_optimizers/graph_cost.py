@@ -59,7 +59,8 @@ class GraphCost(abc.ABC):
         matrix = np.multiply(self.distance_matrix, mat)
         total_cost = self.__calculate_total_cost(matrix)
         method_factor = 1 if self.method == 'minimize' else -1
-        return method_factor * total_cost
+        cost = float('inf') if math.isinf(total_cost) else method_factor * total_cost
+        return cost
 
     def triangular_to_mat(self, triangular_as_vec):
         mat = np.zeros((self.num_nodes, self.num_nodes), dtype=np.int)

@@ -48,7 +48,7 @@ class GraphMetrics:
         unique_elements, counts = np.unique(mat, return_counts=True)
         mat = np.mat([unique_elements, counts]).transpose()
         gb = pd.DataFrame(mat, columns=['dist', 'count'])
-        gb = gb[(gb['dist'] > 0) & (gb['dist'] < float('inf'))]
+        gb = gb[gb['dist'] > 0]
         return gb
 
     @property
@@ -71,6 +71,14 @@ class GraphMetrics:
             self._optimal_wiring_cost = sum_of_percentile_samples * (total_number_of_possible_edges / number_of_random_edges)
         return self._optimal_wiring_cost
 
+    @property
+    def optimal_routing_cost(self):
+        number_of_pairs = self.number_of_nodes * (self.number_of_nodes - 1) / 2
+        number_of_pairs_in_distance_1 = self.number_of_edges
+        number_of_pairs_in_distance_2 = number_of_pairs - self.number_of_edges
+        mean_degree = (number_of_pairs_in_distance_1 + 2 * number_of_pairs_in_distance_2) / number_of_pairs
+        return mean_degree
+
     def all_path_lengths(self, weight=False) -> pd.DataFrame:
         if self.all_shortest_paths[weight] is None:
             logger.debug(f'shortest path started - weight={weight}')
@@ -91,17 +99,17 @@ class GraphMetrics:
 
     def routing_cost(self):
         logger.debug('start routing cost')
-        mean_degree = 2 * self.number_of_edges / self.number_of_nodes
-        expected_in_random_network = math.log(self.number_of_nodes) / math.log(mean_degree)
+        expected_in_random_network = self.optimal_routing_cost
         df = self.all_path_lengths(False)
         routing_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
-        result = MetricResult(routing_cost, expected_in_random_network, 1 - 0.5 * routing_cost / expected_in_random_network)
+        result = MetricResult(routing_cost, expected_in_random_network)
         logger.debug('end routing cost')
         return result
 
     def fuel_cost(self):
         logger.debug('start fuel cost')
         df = self.all_path_lengths(True)
-        result = MetricResult((df['dist'] * df['count']).sum() / (df['count']).sum(), self.optimal_fuel_cost)
+        fuel_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
+        result = MetricResult(fuel_cost, self.optimal_fuel_cost)
         logger.debug('end fuel cost')
         return result

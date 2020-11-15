@@ -30,6 +30,7 @@ class GraphFormatter:
 
     def __agg_df(self, df, group_column, agg_column, bins, bins_type='data', method='count'):
         df = df.copy()
+        df = df[df[group_column] < float('inf')]
         if bins and bins_type == 'data':
             df['bins'] = pd.cut(df[group_column], 20, include_lowest=True, right=False).apply(str)
             df = df.groupby('bins', as_index=False).agg({agg_column: method})
