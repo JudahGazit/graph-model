@@ -1,3 +1,4 @@
+import numpy as np
 import logging
 import random
 
@@ -84,7 +85,10 @@ class GraphFormatter:
             'edge-length-dist-dbins': self.__edge_length_dist_chart('distances'),
             'degree-histogram': self.__degree_dist_chart(),
             'node-path-len-dist': self.__node_path_length_dist_chart(),
-            'nodes-distance-dist': self.__node_path_length_dist_chart(True, True)
+            'nodes-distance-dist': self.__node_path_length_dist_chart(True, True),
+            'degree-edge-distance-correlation': self.__node_degree_and_edge_length_correlation(),
+            'degree-and-degree-of-neighbours': self.__degree_and_degree_of_neighbours(),
+            'triangles-hist': self.__triangles_hist()
         }
         logger.debug('end formatting charts')
         return charts
@@ -116,3 +120,28 @@ class GraphFormatter:
         pairs = pairs.groupby(['bins'], as_index=False).agg({'dist': 'count'})
         pairs['dist'] = (num_nodes * (num_nodes - 1) / 2) * pairs['dist'] / pairs['dist'].sum()
         return pairs, bins
+
+    def __node_degree_and_edge_length_correlation(self):
+        degrees = [degree for node, degree in sorted(self.graph.degree)]
+        node_average_edge_dist = nx.to_numpy_array(self.graph).mean(axis=0)
+        return {
+            'x': degrees,
+            'y': node_average_edge_dist.tolist(),
+            'type': 'circle'
+        }
+
+    def __degree_and_degree_of_neighbours(self):
+        degrees = pd.DataFrame(self.graph.degree, columns=['node', 'degree'])
+        edges = pd.DataFrame(self.graph.edges, columns=['src', 'dst'])
+        edges = edges.merge(degrees, left_on=['src'], right_on=['node']).merge(degrees, left_on=['dst'], right_on=['node'])
+        edges = edges[['src', 'dst', 'degree_x', 'degree_y']]
+        edges = edges.groupby('src', as_index=False).mean().groupby('degree_x', as_index=False).mean()
+        return {
+            'x': edges['degree_x'].tolist(),
+            'y': edges['degree_y'].tolist()
+        }
+
+    def __triangles_hist(self):
+        triangles = pd.DataFrame(nx.triangles(self.graph).values(), columns=['x'])
+        triangles['y'] = 1
+        return self.__agg_df(triangles, 'x', 'y', True).to_dict('list')

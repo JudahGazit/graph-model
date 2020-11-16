@@ -11,9 +11,11 @@ CHART_NAME_MAPPING = {
     'edge-length-dist-dbins': 'Fiber Length Histogram (normalized by distances bin)',
     'degree-histogram': 'Node Degree Histogram',
     'node-path-len-dist': 'Unweighted Shortest Path Distance Histogram',
-    'nodes-distance-dist': 'Weighted Shortest Path Distance Histogram'
+    'nodes-distance-dist': 'Weighted Shortest Path Distance Histogram',
+    'degree-edge-distance-correlation': 'Correlation between NODE DEGREE to AVG EDGE WEIGHT',
+    'degree-and-degree-of-neighbours': 'DEGREE and AVG DEGREE of neighbours',
+    'triangles-hist': 'Triangles Histogram'
 }
-
 
 def display_graph(graph: nx.Graph, node_method=None, edge_method=None, engine='neato'):
     for i, node in enumerate(graph.nodes):
@@ -76,8 +78,7 @@ def display_metrics(metrics):
 def _chart_selectors(charts):
     st.subheader('Charts')
     scale = 'log' if st.checkbox('Display in Log Scale') else 'linear'
-    chart_title = st.selectbox('Chart', list(charts.keys()))
-    return chart_title, scale
+    return scale
 
 
 def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
@@ -87,28 +88,28 @@ def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
     return chart
 
 
-def display_chart(charts):
+def display_charts(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
-    chart_title, scale = _chart_selectors(charts)
-    chart = charts[chart_title]
-    c = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']),
-                  title=chart_title,
-                  height=500).mark_bar()
-    st.altair_chart(_encode_altair_chart(c, scale), use_container_width=True)
-
+    scale = _chart_selectors(charts)
+    for chart_title, chart in charts.items():
+        c = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']),
+                      title=chart_title,
+                      height=500)
+        c = getattr(c, f'mark_{chart.get("type", "bar")}')()
+        st.altair_chart(_encode_altair_chart(c, scale), use_container_width=True)
 
 def display_chart_with_mean_line(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
-    chart_title, scale = _chart_selectors(charts)
-    chart = charts[chart_title]
-    altair_charts = []
-    for index, y_value in enumerate(chart['ys']):
-        c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
-                      height=500).mark_line()
-        altair_charts.append(_encode_altair_chart(c, scale))
+    scale = _chart_selectors(charts)
+    for chart_title, chart in charts.items():
+        altair_charts = []
+        for index, y_value in enumerate(chart['ys']):
+            c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
+                          height=500).mark_line()
+            altair_charts.append(_encode_altair_chart(c, scale))
 
-    altair_chart = reduce(lambda a, b: a + b, altair_charts)
-    mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
-                          height=500).mark_line(color='black', strokeWidth=3)
-    mean_line = _encode_altair_chart(mean_line, scale)
-    st.altair_chart(altair_chart + mean_line, use_container_width=True)
+        altair_chart = reduce(lambda a, b: a + b, altair_charts)
+        mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
+                              height=500).mark_line(color='black', strokeWidth=3)
+        mean_line = _encode_altair_chart(mean_line, scale)
+        st.altair_chart(altair_chart + mean_line, use_container_width=True)
