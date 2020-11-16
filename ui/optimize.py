@@ -10,7 +10,7 @@ def _get_parameters():
     cost_type = st.sidebar.selectbox('Network Type', ['circular', 'lattice'])
     num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
         'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
-    mean_degree = st.sidebar.slider('Mean Degree', 1.5, 10.0, 2.0, step=0.01)
+    mean_degree = st.sidebar.slider('Mean Degree', 1.5, 40.0, 2.0, step=0.01)
     wiring_factor = st.sidebar.slider('Wiring Factor', -1.0, 1.0, 0.0, step=0.01)
     routing_factor = st.sidebar.slider('Routing Factor', -1.0, 1.0, 0.0, step=0.01)
     fuel_factor = st.sidebar.slider('Fuel Factor', -1.0, 1.0, 0.0, step=0.01)
@@ -56,6 +56,6 @@ def optimize():
         formatter = GraphFormatter(current_graph, topology=cost_type)
         _display_graph_by_cost_type(current_graph.graph, cost_type)
         display_metrics(formatter.format_metrics())
-        display_chart(formatter.format_chart())
+        display_charts(formatter.format_chart())
     else:
         _display_graph_by_cost_type(_initial_graph(num_nodes, cost_type), cost_type)

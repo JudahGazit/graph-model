@@ -43,6 +43,6 @@ def multiple_optimizations():
     _display_graph(graph, selected_option[0])
     display_metrics(results['metric'])
     if strategy == 'best':
-        display_chart(results['chart'])
+        display_charts(results['chart'])
     else:
         display_chart_with_mean_line(results['chart'])

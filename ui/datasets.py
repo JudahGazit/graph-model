@@ -28,4 +28,4 @@ def datasets():
     graph.add_weighted_edges_from(frame.values)
     display_graph_naturally(graph)
     display_metrics(result['metric'])
-    display_chart(result['chart'])
+    display_charts(result['chart'])
