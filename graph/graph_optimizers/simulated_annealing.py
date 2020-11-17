@@ -50,7 +50,8 @@ class _GraphAnnealer(Annealer):
 
 
     def energy(self):
-        return self.graph_cost.cost(self.state[0])
+        cost = self.graph_cost.cost(self.state[0])
+        return cost
 
 
 class SimulatedAnnealing(GraphOptimizerBase):
@@ -58,11 +59,6 @@ class SimulatedAnnealing(GraphOptimizerBase):
         initial_edges_vec = self._randomize_edges()
         initial_state = self.graph_cost.triangular_to_mat(initial_edges_vec)
         annealer = _GraphAnnealer(self.graph_cost, initial_state)
-        def kill():
-            sleep(120)
-            annealer.set_user_exit(None, None)
-        thread = threading.Thread(target=kill)
-        thread.start()
         res, cost = annealer.anneal()
         res = res[0]
         return res
