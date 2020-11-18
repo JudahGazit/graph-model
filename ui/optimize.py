@@ -8,8 +8,7 @@ last_parameters = None
 current_graph = None
 
 OptimizeParameters = namedtuple('OptimizedParameters',
-                                ['num_nodes', 'num_edges', 'wiring_factor', 'routing_factor', 'fuel_factor',
-                                 'method', 'cost_type', 'optimizer'])
+                                ['num_nodes', 'num_edges', 'wiring_factor', 'routing_factor', 'fuel_factor', 'cost_type',])
 
 
 def _get_parameters():
@@ -20,11 +19,8 @@ def _get_parameters():
     wiring_factor = st.sidebar.slider('Target Wiring', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Wiring?', True) else None
     routing_factor = st.sidebar.slider('Target Routing', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Routing?', True) else None
     fuel_factor = st.sidebar.slider('Target Fuel', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Fuel?', True) else None
-    method = st.sidebar.select_slider('Method', ['minimize', 'maximize'], 'maximize')
-    optimizer = st.sidebar.select_slider('Optimizer', ['annealing', 'genetic'])
     num_edges = int(num_nodes * mean_degree / 2)
-    return OptimizeParameters(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type,
-                              optimizer)
+    return OptimizeParameters(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, cost_type)
 
 
 def _display_graph_by_cost_type(graph, cost_type):
@@ -48,9 +44,9 @@ def optimize_graph(optimize_parameters: OptimizeParameters):
                                optimize_parameters.wiring_factor,
                                optimize_parameters.routing_factor,
                                optimize_parameters.fuel_factor,
-                               optimize_parameters.method,
+                               'maximize',
                                optimize_parameters.cost_type,
-                               optimize_parameters.optimizer)
+                               'annealing')
     return optimizer.optimize()
 
 
