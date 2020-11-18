@@ -1,3 +1,4 @@
+import numpy as np
 import math
 from functools import reduce
 
@@ -5,6 +6,7 @@ import altair as alt
 import networkx as nx
 import pandas as pd
 import streamlit as st
+from scipy.optimize import least_squares
 
 CHART_NAME_MAPPING = {
     'edge-length-dist': 'Fiber Length Histogram',
@@ -88,6 +90,38 @@ def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
     return chart
 
 
+def _extract_x_y_from_chart(chart):
+    chart_xy = np.mat([
+        [(float(x[1:-1].split(', ', 1)[0]) + float(x[1:-1].split(', ', 1)[1])) / 2 for x in chart['x']],
+        chart['y']
+    ]).transpose()
+    chart_xy = chart_xy[np.all(chart_xy > 1e-10, axis=1).A1]
+    X, Y = np.squeeze(np.asarray(chart_xy[:, 0])), np.squeeze(np.asarray(chart_xy[:, 1]))
+    return X, Y
+
+
+def _fit_exponential_function_to_chart(X, Y):
+    def loss_exp(args, x, y):
+        lamda1, lamda2, A, B = args
+        return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x) - y
+
+    res_exp = least_squares(loss_exp, [1, 0.01, 0.5, 0.5], args=(range(len(X)), Y), ftol=1e-10)
+    lamda1, lamda2, A, B, = res_exp.x
+    return A, B, lamda1, lamda2
+
+
+def display_exponential(chart_title, chart):
+    if isinstance(chart['x'][0], str):
+        X, Y = _extract_x_y_from_chart(chart)
+
+        A, B, lamda1, lamda2 = _fit_exponential_function_to_chart(X, Y)
+        X1 = np.linspace(0, len(X) - 1, 100)
+        Y1 = A * np.exp(- abs(lamda1) * X1) + B * np.exp(abs(lamda2) * X1)
+        exp_line = alt.Chart(pd.DataFrame(zip(X1, Y1), columns=['x', 'y']), title=chart_title,
+                             height=500).mark_line(color='red', strokeWidth=3)
+        return exp_line
+
+
 def display_charts(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
     scale = _chart_selectors(charts)
@@ -96,7 +130,12 @@ def display_charts(charts):
                       title=chart_title,
                       height=500)
         c = getattr(c, f'mark_{chart.get("type", "bar")}')()
-        st.altair_chart(_encode_altair_chart(c, scale), use_container_width=True)
+
+        line = _encode_altair_chart(c, scale)
+        exponential_line = display_exponential(chart_title, chart)
+        if exponential_line is not None:
+            line += _encode_altair_chart(exponential_line, scale)
+        st.altair_chart(line, use_container_width=True)
 
 def display_chart_with_mean_line(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
@@ -112,4 +151,8 @@ def display_chart_with_mean_line(charts):
         mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
                               height=500).mark_line(color='black', strokeWidth=3)
         mean_line = _encode_altair_chart(mean_line, scale)
-        st.altair_chart(altair_chart + mean_line, use_container_width=True)
+        line = altair_chart + mean_line
+        exponential_line = display_exponential(chart_title, chart)
+        if exponential_line is not None:
+            line += _encode_altair_chart(exponential_line, scale)
+        st.altair_chart(line, use_container_width=True)
