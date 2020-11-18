@@ -2,6 +2,8 @@ import itertools
 import logging
 import math
 import random
+from collections import namedtuple
+from dataclasses import dataclass
 
 import igraph
 import networkx as nx
@@ -10,7 +12,7 @@ import pandas as pd
 from scipy.spatial.distance import cityblock
 import scipy.sparse.csgraph
 
-from graph.metric_result import MetricResult
+from graph.metric_result import MetricResult, MetricBoundaries
 
 logger = logging.getLogger('metrics')
 
@@ -21,18 +23,18 @@ def manhatten(u, v, n):
     return cityblock(u, v)
 
 
+@dataclass
+class CostBoundaries:
+    wiring: MetricBoundaries = MetricBoundaries()
+    routing: MetricBoundaries = MetricBoundaries()
+    fuel: MetricBoundaries = MetricBoundaries()
+
 class GraphMetrics:
-    def __init__(self, graph_dataset=None, matrix=None, topology='circular',
-                 optimal_wiring_cost=None, worst_wiring_cost=None,
-                 optimal_fuel_cost=None, worst_fuel_cost=None):
+    def __init__(self, graph_dataset=None, matrix=None, topology='circular', cost_boundaries=None):
         self.topology = topology
         self.graph = graph_dataset.graph if graph_dataset else None  # nx.Graph
         self.distances = graph_dataset.distances if graph_dataset else None
         self.all_shortest_paths = {True: None, False: None}
-        self._optimal_wiring_cost = optimal_wiring_cost
-        self._worst_wiring_cost = worst_wiring_cost
-        self._optimal_fuel_cost = optimal_fuel_cost
-        self._worst_fuel_cost = worst_fuel_cost
 
         if self.graph:
             self.number_of_nodes = self.graph.number_of_nodes()
@@ -48,6 +50,8 @@ class GraphMetrics:
             self.sparse_matrix = nx.to_scipy_sparse_matrix(graph_dataset.graph)
             self.igraph = igraph.Graph.from_networkx(self.graph) if self.number_of_nodes <= 500 else None
 
+        self.cost_boundaries = self.__create_cost_boundaries(cost_boundaries)
+
 
     def __group_by_matrix(self, mat: np.ndarray):
         unique_elements, counts = np.unique(mat, return_counts=True)
@@ -56,58 +60,33 @@ class GraphMetrics:
         gb = gb[gb['dist'] > 0]
         return gb
 
-    def __mean_distance(self, distance_method):
-        random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
-        mean_distance = np.array([distance_method(u, v) for u, v in itertools.combinations(random_nodes, 2)]).mean()
-        return mean_distance
+    def __create_cost_boundaries(self, cost_boundaries):
+        cost_boundaries = cost_boundaries or CostBoundaries()
+        cost_boundaries.wiring.optimal_value = self.__optimal_wiring_cost()
+        cost_boundaries.routing.optimal_value = self.__optimal_routing_cost()
+        cost_boundaries.fuel.optimal_value = self.__optimal_fuel_cost()
+        return cost_boundaries
 
-    def __top_edges_by_length(self, reverse=False):
+    def __optimal_wiring_cost(self):
         total_number_of_possible_edges = self.number_of_nodes * (self.number_of_nodes - 1) / 2
         percentile = self.number_of_edges / total_number_of_possible_edges
         random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
-        distances = sorted([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)], reverse=reverse)
+        distances = sorted([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)])
         number_of_random_edges = len(distances)
         sum_of_percentile_samples = sum(distances[:(max([int(number_of_random_edges * percentile), 1]))])
         return sum_of_percentile_samples * (total_number_of_possible_edges / number_of_random_edges)
 
-    @property
-    def optimal_fuel_cost(self):
-        if self._optimal_fuel_cost is None:
-            self._optimal_fuel_cost = self.__mean_distance(self.distances)
-        return self._optimal_fuel_cost
-
-    @property
-    def worst_fuel_cost(self):
-        if self._worst_fuel_cost is None:
-            n = int(math.sqrt(self.number_of_nodes))
-            self._worst_fuel_cost = self.__mean_distance(lambda u, v: manhatten(u, v, n))
-        return self._worst_fuel_cost
-
-    @property
-    def optimal_wiring_cost(self):
-        if self._optimal_wiring_cost is None:
-            self._optimal_wiring_cost = self.__top_edges_by_length(reverse=False)
-        return self._optimal_wiring_cost
-
-    @property
-    def worst_wiring_cost(self):
-        if self._worst_wiring_cost is None:
-            self._worst_wiring_cost = self.__top_edges_by_length(reverse=True)
-        return self._worst_wiring_cost
-
-    @property
-    def optimal_routing_cost(self):
+    def __optimal_routing_cost(self):
         number_of_pairs = self.number_of_nodes * (self.number_of_nodes - 1) / 2
         number_of_pairs_in_distance_1 = self.number_of_edges
         number_of_pairs_in_distance_2 = number_of_pairs - self.number_of_edges
         mean_degree = (number_of_pairs_in_distance_1 + 2 * number_of_pairs_in_distance_2) / number_of_pairs
         return mean_degree
 
-    @property
-    def mean_routing_cost(self):
-        mean_degree = 2 * self.number_of_edges / self.number_of_nodes
-        expected_in_random_network = math.log(self.number_of_nodes) / math.log(mean_degree)
-        return expected_in_random_network
+    def __optimal_fuel_cost(self):
+        random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
+        mean_distance = np.array([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)]).mean()
+        return mean_distance
 
     def all_path_lengths(self, weight=False) -> pd.DataFrame:
         if self.all_shortest_paths[weight] is None:
@@ -126,7 +105,7 @@ class GraphMetrics:
 
     def wiring_cost(self):
         logger.debug('start wiring cost')
-        result = MetricResult(self.sparse_matrix.sum() / 2, self.optimal_wiring_cost, self.worst_wiring_cost)
+        result = MetricResult(self.sparse_matrix.sum() / 2, self.cost_boundaries.wiring)
         logger.debug('end wiring cost')
         return result
 
@@ -134,7 +113,7 @@ class GraphMetrics:
         logger.debug('start routing cost')
         df = self.all_path_lengths(False)
         routing_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
-        result = MetricResult(routing_cost, self.optimal_routing_cost, mean_value=self.mean_routing_cost)
+        result = MetricResult(routing_cost, self.cost_boundaries.routing)
         logger.debug('end routing cost')
         return result
 
@@ -142,6 +121,6 @@ class GraphMetrics:
         logger.debug('start fuel cost')
         df = self.all_path_lengths(True)
         fuel_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
-        result = MetricResult(fuel_cost, self.optimal_fuel_cost, self.worst_fuel_cost)
+        result = MetricResult(fuel_cost, self.cost_boundaries.fuel)
         logger.debug('end fuel cost')
         return result

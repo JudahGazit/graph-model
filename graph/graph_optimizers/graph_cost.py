@@ -6,7 +6,7 @@ from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_metrics import GraphMetrics
+from graph.graph_metrics import GraphMetrics, CostBoundaries
 
 
 class GraphCost(abc.ABC):
@@ -17,8 +17,7 @@ class GraphCost(abc.ABC):
         self.method = method
         self.distance_matrix = self._create_distance_matrix()
         self.routing_factor = routing_factor
-        self.optimal_fuel_cost = None
-        self.optimal_wiring_cost = None
+        self.cost_boundaries = CostBoundaries()
 
     def distance(self, i, j):
         raise NotImplementedError()
@@ -37,13 +36,15 @@ class GraphCost(abc.ABC):
         if self.wiring_factor:
             wiring_cost = graph_metrics.wiring_cost()
             total_cost += self.wiring_factor * wiring_cost.normalized_value
-            self.optimal_wiring_cost = wiring_cost.normalization_factor
+            self.cost_boundaries.wiring = wiring_cost.metric_boundaries
         if self.routing_factor:
-            total_cost += self.routing_factor * graph_metrics.routing_cost().normalized_value
+            routing_cost = graph_metrics.routing_cost()
+            total_cost += self.routing_factor * routing_cost.normalized_value
+            self.cost_boundaries.routing = routing_cost.metric_boundaries
         if self.fuel_factor:
             fuel_cost = graph_metrics.fuel_cost()
             total_cost += self.fuel_factor * fuel_cost.normalized_value
-            self.optimal_fuel_cost = fuel_cost.normalization_factor
+            self.cost_boundaries.fuel = fuel_cost.metric_boundaries
         return total_cost
 
     def triangular_index(self, i, row_index=0):
@@ -69,8 +70,7 @@ class GraphCost(abc.ABC):
 class GraphCostCircular(GraphCost):
     def create_graph_metrics(self, matrix, **kwargs):
         return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular',
-                            optimal_fuel_cost=self.optimal_fuel_cost, optimal_wiring_cost=self.optimal_wiring_cost,
-                            **kwargs)
+                            cost_boundaries=self.cost_boundaries, **kwargs)
 
     def distance(self, i, j):
         return perimeter_distance(i, j, self.num_nodes)
@@ -80,7 +80,7 @@ class GraphCostCircular(GraphCost):
 class GraphCostLattice(GraphCost):
     def create_graph_metrics(self, matrix, **kwargs):
         return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice',
-                            optimal_fuel_cost=self.optimal_fuel_cost, optimal_wiring_cost=self.optimal_wiring_cost,
+                            cost_boundaries=self.cost_boundaries,
                             **kwargs)
 
     def distance(self, i, j):

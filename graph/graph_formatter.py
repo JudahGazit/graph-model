@@ -98,8 +98,8 @@ class GraphFormatter:
         number_of_nodes = self.graph.number_of_nodes()
         number_of_edges = self.graph.number_of_edges()
         metrics = {
-            'number-of-nodes': MetricResult(number_of_nodes, number_of_nodes),
-            'number-of-edges': MetricResult(number_of_edges, number_of_edges),
+            'number-of-nodes': MetricResult(number_of_nodes),
+            'number-of-edges': MetricResult(number_of_edges),
             'wiring-cost': self.graph_metrics.wiring_cost(),
             'routing-cost': self.graph_metrics.routing_cost(),
             'fuel-cost': self.graph_metrics.fuel_cost(),
