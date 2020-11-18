@@ -34,17 +34,19 @@ class GraphMetrics:
         self._optimal_fuel_cost = optimal_fuel_cost
         self._worst_fuel_cost = worst_fuel_cost
 
-        if matrix is not None:
-            self.sparse_matrix = matrix
-        else:
-            self.sparse_matrix = nx.to_scipy_sparse_matrix(graph_dataset.graph)
-
         if self.graph:
             self.number_of_nodes = self.graph.number_of_nodes()
             self.number_of_edges = self.graph.number_of_edges()
         else:
             self.number_of_nodes = matrix.shape[0]
             self.number_of_edges = int(np.count_nonzero(matrix) / 2)
+
+        if matrix is not None:
+            self.sparse_matrix = matrix
+            self.igraph = igraph.Graph.Weighted_Adjacency(matrix.tolist(), mode=igraph.ADJ_UNDIRECTED) if self.number_of_nodes <= 500 else None
+        else:
+            self.sparse_matrix = nx.to_scipy_sparse_matrix(graph_dataset.graph)
+            self.igraph = igraph.Graph.from_networkx(self.graph) if self.number_of_nodes <= 500 else None
 
 
     def __group_by_matrix(self, mat: np.ndarray):
@@ -111,8 +113,11 @@ class GraphMetrics:
         if self.all_shortest_paths[weight] is None:
             logger.debug(f'shortest path started - weight={weight}')
             indices = random.sample(range(self.number_of_nodes), 1000) if self.number_of_nodes > 1000 else None
-            all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(self.sparse_matrix, directed=False,
-                                                                         unweighted=not weight, indices=indices)
+            if self.igraph is not None:
+                all_pairs_shortest_path = self.igraph.shortest_paths(indices, weights='weight' if weight else None)
+            else:
+                all_pairs_shortest_path = scipy.sparse.csgraph.shortest_path(self.sparse_matrix, directed=False,
+                                                                             unweighted=not weight, indices=indices)
             logger.debug('shortest path is done')
             gb = self.__group_by_matrix(all_pairs_shortest_path)
             logger.debug('group by is done')
@@ -122,7 +127,6 @@ class GraphMetrics:
     def wiring_cost(self):
         logger.debug('start wiring cost')
         result = MetricResult(self.sparse_matrix.sum() / 2, self.optimal_wiring_cost, self.worst_wiring_cost)
-        logger.info('optimal wiring %s, worst wiring %s', self.optimal_wiring_cost, self.worst_wiring_cost)
         logger.debug('end wiring cost')
         return result
 
@@ -131,7 +135,6 @@ class GraphMetrics:
         df = self.all_path_lengths(False)
         routing_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
         result = MetricResult(routing_cost, self.optimal_routing_cost, mean_value=self.mean_routing_cost)
-        logger.info('optimal routing %s, mean routing %s', self.optimal_routing_cost, self.mean_routing_cost)
         logger.debug('end routing cost')
         return result
 
@@ -140,6 +143,5 @@ class GraphMetrics:
         df = self.all_path_lengths(True)
         fuel_cost = (df['dist'] * df['count']).sum() / (df['count']).sum()
         result = MetricResult(fuel_cost, self.optimal_fuel_cost, self.worst_fuel_cost)
-        logger.info('optimal fuel %s, worst fuel %s', self.optimal_fuel_cost, self.worst_fuel_cost)
         logger.debug('end fuel cost')
         return result

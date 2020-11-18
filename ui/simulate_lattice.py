@@ -27,7 +27,7 @@ def simulate_lattice():
         formatter = GraphFormatter(current_graph, topology='lattice')
         display_graph_as_lattice(current_graph.graph)
         display_metrics(formatter.format_metrics())
-        display_chart(formatter.format_chart())
+        display_charts(formatter.format_chart())
     else:
         n = int(math.sqrt(nodes))
         display_graph_as_lattice(nx.grid_graph((n, n)))

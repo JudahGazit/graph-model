@@ -23,7 +23,7 @@ class GraphCost(abc.ABC):
     def distance(self, i, j):
         raise NotImplementedError()
 
-    def _create_graph_metrics(self, matrix, **kwargs) -> GraphMetrics:
+    def create_graph_metrics(self, matrix, **kwargs) -> GraphMetrics:
         raise NotImplementedError()
 
     def _create_distance_matrix(self):
@@ -33,9 +33,7 @@ class GraphCost(abc.ABC):
 
     def __calculate_total_cost(self, matrix):
         total_cost = 0
-        graph_metrics = self._create_graph_metrics(matrix,
-                                                   optimal_fuel_cost=self.optimal_fuel_cost,
-                                                   optimal_wiring_cost=self.optimal_wiring_cost)
+        graph_metrics = self.create_graph_metrics(matrix)
         if self.wiring_factor:
             wiring_cost = graph_metrics.wiring_cost()
             total_cost += self.wiring_factor * wiring_cost.normalized_value
@@ -69,8 +67,10 @@ class GraphCost(abc.ABC):
 
 
 class GraphCostCircular(GraphCost):
-    def _create_graph_metrics(self, matrix, **kwargs):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular', **kwargs)
+    def create_graph_metrics(self, matrix, **kwargs):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='circular',
+                            optimal_fuel_cost=self.optimal_fuel_cost, optimal_wiring_cost=self.optimal_wiring_cost,
+                            **kwargs)
 
     def distance(self, i, j):
         return perimeter_distance(i, j, self.num_nodes)
@@ -78,8 +78,10 @@ class GraphCostCircular(GraphCost):
 
 
 class GraphCostLattice(GraphCost):
-    def _create_graph_metrics(self, matrix, **kwargs):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice', **kwargs)
+    def create_graph_metrics(self, matrix, **kwargs):
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, topology='lattice',
+                            optimal_fuel_cost=self.optimal_fuel_cost, optimal_wiring_cost=self.optimal_wiring_cost,
+                            **kwargs)
 
     def distance(self, i, j):
         n = int(math.sqrt(self.num_nodes))

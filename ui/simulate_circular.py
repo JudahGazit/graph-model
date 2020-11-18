@@ -36,6 +36,6 @@ def simulate():
         formatter = GraphFormatter(current_graph)
         display_graph_in_circle(current_graph.graph)
         display_metrics(formatter.format_metrics())
-        display_chart(formatter.format_chart())
+        display_charts(formatter.format_chart())
     else:
         display_graph_in_circle(nx.circular_ladder_graph(N))

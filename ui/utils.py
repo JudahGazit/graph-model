@@ -1,3 +1,4 @@
+import numpy as np
 import math
 from functools import reduce
 
@@ -5,15 +6,18 @@ import altair as alt
 import networkx as nx
 import pandas as pd
 import streamlit as st
+from scipy.optimize import least_squares
 
 CHART_NAME_MAPPING = {
     'edge-length-dist': 'Fiber Length Histogram',
     'edge-length-dist-dbins': 'Fiber Length Histogram (normalized by distances bin)',
     'degree-histogram': 'Node Degree Histogram',
     'node-path-len-dist': 'Unweighted Shortest Path Distance Histogram',
-    'nodes-distance-dist': 'Weighted Shortest Path Distance Histogram'
+    'nodes-distance-dist': 'Weighted Shortest Path Distance Histogram',
+    'degree-edge-distance-correlation': 'Correlation between NODE DEGREE to AVG EDGE WEIGHT',
+    'degree-and-degree-of-neighbours': 'DEGREE and AVG DEGREE of neighbours',
+    'triangles-hist': 'Triangles Histogram'
 }
-
 
 def display_graph(graph: nx.Graph, node_method=None, edge_method=None, engine='neato'):
     for i, node in enumerate(graph.nodes):
@@ -76,8 +80,7 @@ def display_metrics(metrics):
 def _chart_selectors(charts):
     st.subheader('Charts')
     scale = 'log' if st.checkbox('Display in Log Scale') else 'linear'
-    chart_title = st.selectbox('Chart', list(charts.keys()))
-    return chart_title, scale
+    return scale
 
 
 def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
@@ -87,28 +90,69 @@ def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
     return chart
 
 
-def display_chart(charts):
-    charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
-    chart_title, scale = _chart_selectors(charts)
-    chart = charts[chart_title]
-    c = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']),
-                  title=chart_title,
-                  height=500).mark_bar()
-    st.altair_chart(_encode_altair_chart(c, scale), use_container_width=True)
+def _extract_x_y_from_chart(chart):
+    chart_xy = np.mat([
+        [(float(x[1:-1].split(', ', 1)[0]) + float(x[1:-1].split(', ', 1)[1])) / 2 for x in chart['x']],
+        chart['y']
+    ]).transpose()
+    chart_xy = chart_xy[np.all(chart_xy > 1e-10, axis=1).A1]
+    X, Y = np.squeeze(np.asarray(chart_xy[:, 0])), np.squeeze(np.asarray(chart_xy[:, 1]))
+    return X, Y
 
+
+def _fit_exponential_function_to_chart(X, Y):
+    def loss_exp(args, x, y):
+        lamda1, lamda2, A, B = args
+        return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x) - y
+
+    res_exp = least_squares(loss_exp, [1, 0.01, 0.5, 0.5], args=(range(len(X)), Y), ftol=1e-10)
+    lamda1, lamda2, A, B, = res_exp.x
+    return A, B, lamda1, lamda2
+
+
+def display_exponential(chart_title, chart):
+    if isinstance(chart['x'][0], str):
+        X, Y = _extract_x_y_from_chart(chart)
+
+        A, B, lamda1, lamda2 = _fit_exponential_function_to_chart(X, Y)
+        X1 = np.linspace(0, len(X) - 1, 100)
+        Y1 = A * np.exp(- abs(lamda1) * X1) + B * np.exp(abs(lamda2) * X1)
+        exp_line = alt.Chart(pd.DataFrame(zip(X1, Y1), columns=['x', 'y']), title=chart_title,
+                             height=500).mark_line(color='red', strokeWidth=3)
+        return exp_line
+
+
+def display_charts(charts):
+    charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
+    scale = _chart_selectors(charts)
+    for chart_title, chart in charts.items():
+        c = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']),
+                      title=chart_title,
+                      height=500)
+        c = getattr(c, f'mark_{chart.get("type", "bar")}')()
+
+        line = _encode_altair_chart(c, scale)
+        exponential_line = display_exponential(chart_title, chart)
+        if exponential_line is not None:
+            line += _encode_altair_chart(exponential_line, scale)
+        st.altair_chart(line, use_container_width=True)
 
 def display_chart_with_mean_line(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
-    chart_title, scale = _chart_selectors(charts)
-    chart = charts[chart_title]
-    altair_charts = []
-    for index, y_value in enumerate(chart['ys']):
-        c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
-                      height=500).mark_line()
-        altair_charts.append(_encode_altair_chart(c, scale))
+    scale = _chart_selectors(charts)
+    for chart_title, chart in charts.items():
+        altair_charts = []
+        for index, y_value in enumerate(chart['ys']):
+            c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
+                          height=500).mark_line()
+            altair_charts.append(_encode_altair_chart(c, scale))
 
-    altair_chart = reduce(lambda a, b: a + b, altair_charts)
-    mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
-                          height=500).mark_line(color='black', strokeWidth=3)
-    mean_line = _encode_altair_chart(mean_line, scale)
-    st.altair_chart(altair_chart + mean_line, use_container_width=True)
+        altair_chart = reduce(lambda a, b: a + b, altair_charts)
+        mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
+                              height=500).mark_line(color='black', strokeWidth=3)
+        mean_line = _encode_altair_chart(mean_line, scale)
+        line = altair_chart + mean_line
+        exponential_line = display_exponential(chart_title, chart)
+        if exponential_line is not None:
+            line += _encode_altair_chart(exponential_line, scale)
+        st.altair_chart(line, use_container_width=True)

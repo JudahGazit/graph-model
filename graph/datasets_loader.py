@@ -15,8 +15,8 @@ logger = logging.getLogger('dataset_loader')
 
 DATASETS = {
     'highvoltage': HighVoltageCategory('High Voltage', 'datasets/highvoltage'),
-    'street_network': StreetNetwork('Street Network', 'datasets/street_networks'),
-    'internet': Internet('Internet', 'datasets/internet'),
+    # 'street_network': StreetNetwork('Street Network', 'datasets/street_networks'),
+    # 'internet': Internet('Internet', 'datasets/internet'),
     'railroads': CsvGraphCategory('Rail Roads', 'datasets/railroads',
                                   src='from_id',
                                   dst='to_id',
@@ -48,19 +48,15 @@ class DatasetsLoader:
 
 class DatasetsResultCache:
     __datasets_loader = DatasetsLoader()
-    __result_cache = {}
     __lock = threading.Lock()
 
     def get_from_cache(self, dataset_name):
-        if dataset_name not in self.__result_cache:
-            if os.path.isfile(f'result_cache/{dataset_name}.json'):
-                with open(f'result_cache/{dataset_name}.json') as f:
-                    result = json.loads(f.read())
-                self.__result_cache[dataset_name] = result
-        return self.__result_cache.get(dataset_name)
+        if os.path.isfile(f'result_cache/{dataset_name}.json'):
+            with open(f'result_cache/{dataset_name}.json') as f:
+                result = json.loads(f.read())
+                return result
 
     def write_to_cache(self, dataset_name, payload):
-        self.__result_cache[dataset_name] = payload
         if not os.path.isfile(f'result_cache/{dataset_name}.json'):
             with open(f'result_cache/{dataset_name}.json', 'w') as f:
                 f.write(json.dumps(payload))
