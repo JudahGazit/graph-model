@@ -22,8 +22,8 @@ def manhatten(u, v, n):
 
 
 class GraphMetrics:
-    def __init__(self, graph_dataset=None, matrix=None, topology='circular', optimal_wiring_cost=None,
-                 optimal_fuel_cost=None):
+    def __init__(self, graph_dataset=None, matrix=None, topology='circular',
+                 optimal_wiring_cost=None, optimal_fuel_cost=None):
         self.topology = topology
         self.graph = graph_dataset.graph if graph_dataset else None  # nx.Graph
         self.distances = graph_dataset.distances if graph_dataset else None
