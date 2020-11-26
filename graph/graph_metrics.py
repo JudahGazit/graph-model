@@ -30,8 +30,7 @@ class CostBoundaries:
     fuel: MetricBoundaries = MetricBoundaries()
 
 class GraphMetrics:
-    def __init__(self, graph_dataset=None, matrix=None, topology='circular', cost_boundaries=None):
-        self.topology = topology
+    def __init__(self, graph_dataset=None, matrix=None, cost_boundaries=None):
         self.graph = graph_dataset.graph if graph_dataset else None  # nx.Graph
         self.distances = graph_dataset.distances if graph_dataset else None
         self.all_shortest_paths = {True: None, False: None}
@@ -62,16 +61,17 @@ class GraphMetrics:
 
     def __create_cost_boundaries(self, cost_boundaries):
         cost_boundaries = cost_boundaries or CostBoundaries()
-        cost_boundaries.wiring.optimal_value = self.__optimal_wiring_cost()
+        cost_boundaries.wiring.optimal_value = self.__wiring_cost_bounds(optimal=True)
+        cost_boundaries.wiring.worst_value = self.__wiring_cost_bounds(optimal=False)
         cost_boundaries.routing.optimal_value = self.__optimal_routing_cost()
         cost_boundaries.fuel.optimal_value = self.__optimal_fuel_cost()
         return cost_boundaries
 
-    def __optimal_wiring_cost(self):
+    def __wiring_cost_bounds(self, optimal=True):
         total_number_of_possible_edges = self.number_of_nodes * (self.number_of_nodes - 1) / 2
         percentile = self.number_of_edges / total_number_of_possible_edges
         random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
-        distances = sorted([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)])
+        distances = sorted([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)], reverse=not optimal)
         number_of_random_edges = len(distances)
         sum_of_percentile_samples = sum(distances[:(max([int(number_of_random_edges * percentile), 1]))])
         return sum_of_percentile_samples * (total_number_of_possible_edges / number_of_random_edges)
