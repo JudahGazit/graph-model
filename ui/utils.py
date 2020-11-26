@@ -100,23 +100,26 @@ def _extract_x_y_from_chart(chart):
     return X, Y
 
 
-def _fit_exponential_function_to_chart(X, Y):
+def exponent(A, B, lamda1, lamda2, x):
+    return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x)
+
+def fit_exponential_function_to_chart(X, Y):
+
     def loss_exp(args, x, y):
-        lamda1, lamda2, A, B = args
-        return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x) - y
+        return exponent(*args, x) - y
 
     res_exp = least_squares(loss_exp, [1, 0.01, 0.5, 0.5], args=(range(len(X)), Y), ftol=1e-10)
-    lamda1, lamda2, A, B, = res_exp.x
-    return A, B, lamda1, lamda2
+    args = res_exp.x
+    return args
 
 
 def display_exponential(chart_title, chart):
     if isinstance(chart['x'][0], str):
         X, Y = _extract_x_y_from_chart(chart)
 
-        A, B, lamda1, lamda2 = _fit_exponential_function_to_chart(X, Y)
+        args = fit_exponential_function_to_chart(X, Y)
         X1 = np.linspace(0, len(X) - 1, 100)
-        Y1 = A * np.exp(- abs(lamda1) * X1) + B * np.exp(abs(lamda2) * X1)
+        Y1 = exponent(*args, X1)
         exp_line = alt.Chart(pd.DataFrame(zip(X1, Y1), columns=['x', 'y']), title=chart_title,
                              height=500).mark_line(color='red', strokeWidth=3)
         return exp_line

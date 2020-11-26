@@ -1,4 +1,7 @@
 from collections import namedtuple
+from dataclasses import dataclass
+
+from pathos.multiprocessing import ProcessPool
 
 from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizer import GraphOptimizer
@@ -6,34 +9,46 @@ from ui.utils import *
 
 last_parameters = None
 current_graph = None
+worst_values = None
 
-OptimizeParameters = namedtuple('OptimizedParameters',
-                                ['num_nodes', 'num_edges', 'wiring_factor', 'routing_factor', 'fuel_factor', 'cost_type',])
+CIRCULAR = 'circular'
+LATTICE = 'torus'
+COST_TYPES = [CIRCULAR, LATTICE]
+
+
+@dataclass
+class OptimizeParameters:
+    num_nodes: int
+    num_edges: int
+    cost_type: str
+    wiring_factor: float = None
+    routing_factor: float = None
+    fuel_factor: float = None
 
 
 def _get_parameters():
-    cost_type = st.sidebar.selectbox('Network Type', ['circular', 'lattice'])
+    cost_type = st.sidebar.selectbox('Network Type', COST_TYPES)
     num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
         'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
     mean_degree = st.sidebar.slider('Mean Degree', 1.5, 40.0, 2.0, step=0.01)
-    wiring_factor = st.sidebar.slider('Target Wiring', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Wiring?', True) else None
-    routing_factor = st.sidebar.slider('Target Routing', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Routing?', True) else None
-    fuel_factor = st.sidebar.slider('Target Fuel', 0.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Fuel?', True) else None
+    wiring_factor = st.sidebar.slider('Target Wiring', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Wiring?', True) else None
+    routing_factor = st.sidebar.slider('Target Routing', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Routing?', True) else None
+    fuel_factor = st.sidebar.slider('Target Fuel', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Fuel?', True) else None
     num_edges = int(num_nodes * mean_degree / 2)
-    return OptimizeParameters(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, cost_type)
+    return OptimizeParameters(num_nodes, num_edges, cost_type, wiring_factor, routing_factor, fuel_factor)
 
 
 def _display_graph_by_cost_type(graph, cost_type):
-    if cost_type == 'circular':
+    if cost_type == CIRCULAR:
         display_graph_in_circle(graph)
-    elif cost_type == 'lattice':
+    elif cost_type == LATTICE:
         display_graph_as_lattice(graph)
 
 
 def _initial_graph(num_nodes, cost_type):
-    if cost_type == 'circular':
+    if cost_type == CIRCULAR:
         return nx.circular_ladder_graph(num_nodes)
-    if cost_type == 'lattice':
+    if cost_type == LATTICE:
         return nx.grid_2d_graph(int(math.sqrt(num_nodes)), int(math.sqrt(num_nodes)))
 
 
