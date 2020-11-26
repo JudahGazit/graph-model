@@ -8,16 +8,20 @@ def format_parameters(params):
 
 def _get_parameters(loader):
     nodes_edges = {}
+    cost_types = list({option.cost_type for option in loader.options})
+    selected_cost_type = st.sidebar.selectbox('Topology', cost_types)
     for option in loader.options:
-        key = option.cost_type, int(option.nodes), int(option.edges)
-        value = (option.wiring_factor, option.routing_factor, option.fuel_factor)
-        nodes_edges[key] = nodes_edges.get(key, []) + [value]
-    selected_nodes_edges = st.sidebar.radio('(Topology, Nodes, Edges)', sorted(nodes_edges),
+        if option.cost_type == selected_cost_type:
+            key = int(option.nodes), int(option.edges)
+            value = (option.wiring_factor, option.routing_factor, option.fuel_factor)
+            nodes_edges[key] = nodes_edges.get(key, []) + [value]
+    selected_nodes_edges = st.sidebar.radio('(Nodes, Edges)', sorted(nodes_edges),
                                             format_func=lambda v: ', '.join(map(str, v)))
-    selected_params = st.sidebar.radio('(Wiring, Routing, Fuel)',
-                                       sorted(nodes_edges[selected_nodes_edges], reverse=True) + [('*', '*', '*')],
+    selected_params = st.sidebar.selectbox('(Wiring, Routing, Fuel)',
+                                       sorted(nodes_edges[selected_nodes_edges], reverse=True,
+                                              key=lambda x: [float(x[i]) for i in [1, 2, 0]]) + [('*', '*', '*')],
                                        format_func=format_parameters)
-    selected_option = selected_nodes_edges + selected_params
+    selected_option = (selected_cost_type, ) + selected_nodes_edges + selected_params
     strategy = st.sidebar.select_slider('Strategy', ['best', 'mean'])
     return selected_option, strategy
 
