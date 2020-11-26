@@ -18,7 +18,7 @@ class GraphFormatter:
         self.distances = graph.distances
         self.df = self.format_graph_to_df(self.graph)
         self.distances_bins = self.__distances_bins(self.graph, self.distances)
-        self.graph_metrics = GraphMetrics(graph, topology=topology)
+        self.graph_metrics = GraphMetrics(graph)
 
     def format_graph_to_df(self, graph):
         result = []
