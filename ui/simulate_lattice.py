@@ -24,7 +24,7 @@ def simulate_lattice():
         current_parameters = (nodes, edges)
 
     if current_parameters == (nodes, edges):
-        formatter = GraphFormatter(current_graph, topology='lattice')
+        formatter = GraphFormatter(current_graph, topology='torus')
         display_graph_as_lattice(current_graph.graph)
         display_metrics(formatter.format_metrics())
         display_charts(formatter.format_chart())

@@ -4,6 +4,7 @@ import itertools
 import math
 
 import numpy as np
+import scipy.stats
 from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
@@ -35,19 +36,25 @@ class GraphCost(abc.ABC):
     def __calculate_total_cost(self, matrix):
         total_cost = 0
         graph_metrics = self.create_graph_metrics(matrix)
+        w, r, f = 0, 0, 0
         if self.wiring_factor:
             wiring_cost = graph_metrics.wiring_cost()
-            total_cost += self.wiring_factor * wiring_cost.normalized_value / self.num_nodes
+            # total_cost += self.wiring_factor * wiring_cost.normalized_value
+            w = wiring_cost.normalized_value
             self.cost_boundaries.wiring = wiring_cost.metric_boundaries
         if self.routing_factor:
             routing_cost = graph_metrics.routing_cost()
-            total_cost += self.routing_factor * routing_cost.normalized_value
+            # total_cost += self.routing_factor * routing_cost.normalized_value
+            r = routing_cost.normalized_value
             self.cost_boundaries.routing = routing_cost.metric_boundaries
         if self.fuel_factor:
             fuel_cost = graph_metrics.fuel_cost()
-            total_cost += self.fuel_factor * fuel_cost.normalized_value
+            # total_cost += self.fuel_factor * fuel_cost.normalized_value
+            f = fuel_cost.normalized_value
             self.cost_boundaries.fuel = fuel_cost.metric_boundaries
-        return total_cost
+        total_cost = self.wiring_factor * (1 - w) ** 2 + self.routing_factor * (1 - r) ** 2 + self.fuel_factor * (1 - f) ** 2
+        total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
+        return - total_cost
 
     def triangular_index(self, i, row_index=0):
         num_rows = self.num_nodes - (row_index + 1)
@@ -137,3 +144,7 @@ class GraphCostFacade:
     def get_cost(self, num_nodes, wiring_factor, routing_factor, fuel_factor, method, type, *args, **kwargs):
         cost_class = self.type_mapping[type]
         return cost_class(num_nodes, wiring_factor, routing_factor, fuel_factor, method, *args, **kwargs)
+
+
+if __name__ == '__main__':
+    tr = GraphCostTorus(100, 1, 1, 1, 'maximize')

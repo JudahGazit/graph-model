@@ -1,3 +1,9 @@
+import networkx as nx
+import math
+import sys
+import time
+
+import matplotlib.pyplot as plt
 import copy
 import random
 import signal
@@ -6,12 +12,17 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import euclidean
 from simanneal import Annealer
+from simanneal.anneal import time_string
 
+from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizers.graph_cost import GraphCost
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 
 signal.signal = lambda *args, **kwargs: None
 
+
+# TODO: cleanup
 
 def create_state(matrix):
     return [
@@ -21,14 +32,10 @@ def create_state(matrix):
     ]
 
 class _GraphAnnealer(Annealer):
-    Tmax = 1
-    Tmin = 1e-15
-    steps = 4000
+    Tmax = 0.012
+    Tmin = 1.1e-08
+    steps = 10000
     updates = 200
-
-    def copy_state(self, state):
-        matrix, non_zero_indices, zero_indices = state
-        return [np.copy(matrix), copy.copy(non_zero_indices), copy.copy(zero_indices)]
 
     def __init__(self, graph_cost: GraphCost, matrix, *args, **kwargs):
         super().__init__(create_state(matrix))
@@ -45,10 +52,19 @@ class _GraphAnnealer(Annealer):
         self.state[0][b_index[0], b_index[1]] = 1
         self.state[0][b_index[1], b_index[0]] = 1
 
+    def copy_state(self, state):
+        matrix, non_zero_indices, zero_indices = state
+        return [np.copy(matrix), copy.copy(non_zero_indices), copy.copy(zero_indices)]
+
+    def energy(self):
+        # score = self._energy_by_target()
+        score = self.graph_cost.cost(self.state[0])
+        return score
+
     def move(self):
         self.random_change_edge()
 
-    def energy(self):
+    def _energy_by_target(self):
         matrix = np.multiply(self.graph_cost.distance_matrix, self.state[0])
         metrics = self.graph_cost.create_graph_metrics(matrix)
         wiring_cost = metrics.wiring_cost().normalized_value
@@ -63,6 +79,24 @@ class _GraphAnnealer(Annealer):
         if score < 1e-1:
             self.user_exit = True
         return score
+
+
+def random_gaussian(num_nodes):
+    nodes = np.random.multivariate_normal([0, 0], [[1, 0], [0, 1]], num_nodes)
+    distance_mat = np.mat([[1 / euclidean(u, v) if (u != v).all() else 0 for v in nodes] for u in nodes])
+    return distance_mat
+
+
+def load_distance_mat_of_brain(nodes_num):
+    node_distances = pd.read_csv(f'datasets/brain_nets_inter/Cat3_FinalFinal2_interpellated.csv')
+    node_distances = node_distances.set_index(['Source', 'Target'])
+
+    def distance(u, v):
+        if u != v:
+            return node_distances.loc[(u, v)]['Weight']
+        return 0
+
+    return np.mat([[distance(i, j) for j in range(nodes_num)] for i in range(nodes_num)])
 
 
 class SimulatedAnnealing(GraphOptimizerBase):
