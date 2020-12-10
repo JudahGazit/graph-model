@@ -62,16 +62,15 @@ class DatasetsResultCache:
                 f.write(json.dumps(payload))
 
     def get_results(self, dataset_name):
-        with self.__lock:
-            if not self.get_from_cache(dataset_name):
-                graph = self.__datasets_loader.load(dataset_name)
-                formatter = GraphFormatter(graph, topology='lattice')
-                result = {
-                    'edges': formatter.format_graph_sample(),
-                    'chart': formatter.format_chart(),
-                    'metric': formatter.format_metrics()
-                }
-                self.write_to_cache(dataset_name, result)
+        if not self.get_from_cache(dataset_name):
+            graph = self.__datasets_loader.load(dataset_name)
+            formatter = GraphFormatter(graph, topology='lattice')
+            result = {
+                'edges': formatter.format_graph_sample(),
+                'chart': formatter.format_chart(),
+                'metric': formatter.format_metrics()
+            }
+            self.write_to_cache(dataset_name, result)
         return self.get_from_cache(dataset_name)
 
     def options(self):
