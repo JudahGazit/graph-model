@@ -37,22 +37,21 @@ class GraphCost(abc.ABC):
         total_cost = 0
         graph_metrics = self.create_graph_metrics(matrix)
         w, r, f = 0, 0, 0
-        if self.wiring_factor:
+        if self.wiring_factor is not None:
             wiring_cost = graph_metrics.wiring_cost()
-            # total_cost += self.wiring_factor * wiring_cost.normalized_value
             w = wiring_cost.normalized_value
             self.cost_boundaries.wiring = wiring_cost.metric_boundaries
-        if self.routing_factor:
+        if self.routing_factor is not None:
             routing_cost = graph_metrics.routing_cost()
-            # total_cost += self.routing_factor * routing_cost.normalized_value
             r = routing_cost.normalized_value
             self.cost_boundaries.routing = routing_cost.metric_boundaries
-        if self.fuel_factor:
+        if self.fuel_factor is not None:
             fuel_cost = graph_metrics.fuel_cost()
-            # total_cost += self.fuel_factor * fuel_cost.normalized_value
             f = fuel_cost.normalized_value
             self.cost_boundaries.fuel = fuel_cost.metric_boundaries
-        total_cost = self.wiring_factor * (1 - w) ** 2 + self.routing_factor * (1 - r) ** 2 + self.fuel_factor * (1 - f) ** 2
+        total_cost = (self.wiring_factor or 0) * (w - 1) ** 2 + \
+                     (self.routing_factor or 0) * (r - 1) ** 2 + \
+                     (self.fuel_factor or 0) * (f - 1) ** 2
         total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
         return - total_cost
 
