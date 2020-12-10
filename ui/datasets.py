@@ -26,6 +26,6 @@ def datasets():
     graph = nx.Graph()
     frame = pd.DataFrame(result['edges'])
     graph.add_weighted_edges_from(frame.values)
-    display_graph_naturally(graph)
+    # display_graph_naturally(graph)
     display_metrics(result['metric'])
     display_charts(result['chart'])
