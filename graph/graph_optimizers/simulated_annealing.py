@@ -1,9 +1,3 @@
-import networkx as nx
-import math
-import sys
-import time
-
-import matplotlib.pyplot as plt
 import copy
 import random
 import signal
@@ -12,10 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import euclidean
 from simanneal import Annealer
-from simanneal.anneal import time_string
 
-from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizers.graph_cost import GraphCost
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 

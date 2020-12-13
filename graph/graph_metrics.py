@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cityblock
 import scipy.sparse.csgraph
+from bentley_ottmann.planar import segments_intersections
 
 from graph.metric_result import MetricResult, MetricBoundaries
 
@@ -33,6 +34,7 @@ class GraphMetrics:
     def __init__(self, graph_dataset=None, matrix=None, cost_boundaries=None):
         self.graph = graph_dataset.graph if graph_dataset else None  # nx.Graph
         self.distances = graph_dataset.distances if graph_dataset else None
+        self.positions = graph_dataset.positions if graph_dataset else None
         self.all_shortest_paths = {True: None, False: None}
 
         if self.graph:
@@ -92,9 +94,16 @@ class GraphMetrics:
         return mean_degree
 
     def __optimal_fuel_cost(self):
-        random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
-        mean_distance = np.array([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)]).mean()
-        return mean_distance
+        if self.number_of_nodes > 200:
+            random_nodes = random.sample(range(self.number_of_nodes), min([200, self.number_of_nodes]))
+            mean_distance = np.array([self.distances(u, v) for u, v in itertools.combinations(random_nodes, 2)]).mean()
+            return mean_distance
+        else:
+            distance_mat = [[self.distances(u, v) if u != v else 0 for u in range(self.number_of_nodes)] for v in range(self.number_of_nodes)]
+            distance_graph = igraph.Graph.Weighted_Adjacency(distance_mat, mode=igraph.ADJ_UNDIRECTED)
+            shortest_paths = np.mat(distance_graph.shortest_paths(None, weights='weight'))
+            return shortest_paths[np.nonzero(shortest_paths)].mean()
+
 
     def all_path_lengths(self, weight=False) -> pd.DataFrame:
         if self.all_shortest_paths[weight] is None:
@@ -132,3 +141,38 @@ class GraphMetrics:
         result = MetricResult(fuel_cost, self.cost_boundaries.fuel)
         logger.debug('end fuel cost')
         return result
+    #
+    # def collision_cost(self):
+    #     edges = self.igraph.get_edgelist()
+    #     collision_count = 0
+    #     for e1, e2 in itertools.combinations(edges, 2):
+    #         if len(set(e1 + e2)) == 4:
+    #             [x0, y0], [x1, y1] = self.positions(e1[0]), self.positions(e1[1])
+    #             [x2, y2], [x3, y3] = self.positions(e2[0]), self.positions(e2[1])
+    #             m1 = (y1 - y0) / (x1 - x0) if x0 != x1 else None
+    #             m2 = (y3 - y2) / (x3 - x2) if x2 != x3 else None
+    #             if m1 is None or m2 is None:
+    #                 y = None
+    #                 if m2 is not None:
+    #                     x = x0
+    #                     y = (x - x2) * m2 + y2
+    #                 elif m1 is not None:
+    #                     x = x2
+    #                     y = (x - x0) * m1 + y0
+    #                 if y is not None and min([y0, y1]) < y < max([y0, y1]) and min([y2, y3]) < y < max([y2, y3]):
+    #                     collision_count += 1
+    #             elif m1 != m2:
+    #                 x = (x0 * m1 - x2 * m2 + y2 - y0) / (m1 - m2)
+    #                 if min([x0, x1]) < x < max([x0, x1]) and min([x2, x3]) < x < max([x2, x3]):
+    #                     collision_count += 1
+    #     return MetricResult(collision_count)
+
+    def collision_cost(self):
+        if self.positions is not None:
+            nodes = set([self.positions(u) for u in range(self.number_of_nodes)])
+            edges = self.igraph.get_edgelist()
+            edges = [(self.positions(u), self.positions(v)) for u, v in edges]
+            intersections = set(segments_intersections(edges, accurate=False, validate=False).keys())
+            intersections = intersections.difference(nodes)
+            return MetricResult(len(intersections))
+        return MetricResult(None)

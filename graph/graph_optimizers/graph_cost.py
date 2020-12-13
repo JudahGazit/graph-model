@@ -25,8 +25,11 @@ class GraphCost(abc.ABC):
     def distance(self, i, j):
         raise NotImplementedError()
 
+    def position(self, i):
+        raise NotImplementedError()
+
     def create_graph_metrics(self, matrix, **kwargs):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item), matrix, cost_boundaries=self.cost_boundaries)
+        return GraphMetrics(GraphDataset(None, self.distance_matrix.item, self.position), matrix, cost_boundaries=self.cost_boundaries)
 
     def _create_distance_matrix(self):
         mat = np.mat([[self.distance(i, j) for j in range(self.num_nodes)]
@@ -52,7 +55,8 @@ class GraphCost(abc.ABC):
         total_cost = (self.wiring_factor or 0) * (w - 1) ** 2 + \
                      (self.routing_factor or 0) * (r - 1) ** 2 + \
                      (self.fuel_factor or 0) * (f - 1) ** 2
-        total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
+        total_cost += graph_metrics.collision_cost().value / 100
+        # total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
         return - total_cost
 
     def triangular_index(self, i, row_index=0):
@@ -76,16 +80,21 @@ class GraphCost(abc.ABC):
 
 
 class GraphCostCircular(GraphCost):
+    def position(self, i):
+        phi = 2 * math.pi * i / self.num_nodes
+        return [math.cos(phi), math.sin(phi)]
+
     def distance(self, i, j):
         return perimeter_distance(i, j, self.num_nodes)
 
 
 class GraphCostLattice(GraphCost):
-    def distance(self, i, j):
+    def position(self, i):
         n = int(math.sqrt(self.num_nodes))
-        i_location = i % n, int(i / n)
-        j_location = j % n, int(j / n)
-        return euclidean(i_location, j_location)
+        return [i % n, int(i / n)]
+
+    def distance(self, i, j):
+        return euclidean(self.position(i), self.position(j))
 
 
 class GraphCostSphere(GraphCost):
@@ -127,10 +136,14 @@ class GraphCostSphere(GraphCost):
 
 
 class GraphCostTorus(GraphCost):
+    def position(self, i):
+        n = int(math.sqrt(self.num_nodes))
+        return i % n, int(i / n)
+
     def distance(self, i, j):
         n = int(math.sqrt(self.num_nodes))
-        i_location = i % n, int(i / n)
-        j_location = j % n, int(j / n)
+        i_location = self.position(i)
+        j_location = self.position(j)
         x = min([abs(i_location[0] - j_location[0]), n - abs(i_location[0] - j_location[0])])
         y = min([abs(i_location[1] - j_location[1]), n - abs(i_location[1] - j_location[1])])
         return np.sqrt(x ** 2 + y ** 2)

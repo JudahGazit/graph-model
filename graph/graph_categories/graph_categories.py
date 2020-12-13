@@ -7,9 +7,10 @@ import networkx as nx
 
 
 class GraphDataset:
-    def __init__(self, graph: nx.Graph, distances=None):
+    def __init__(self, graph: nx.Graph, distances=None, positions=None):
         self.graph = graph
         self.distances = distances
+        self.positions = positions
 
 
 class GraphCategoryBase(ABC):

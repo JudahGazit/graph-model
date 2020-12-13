@@ -103,6 +103,7 @@ class GraphFormatter:
             'wiring-cost': self.graph_metrics.wiring_cost(),
             'routing-cost': self.graph_metrics.routing_cost(),
             'fuel-cost': self.graph_metrics.fuel_cost(),
+            'collision-cost': self.graph_metrics.collision_cost()
         }
         metrics = {name: metric.to_dict() for name, metric in metrics.items()}
         logger.debug('end formatting metrics')

@@ -11,14 +11,15 @@ class RandomLattice:
         self.num_nodes = num_nodes
         self.num_edges = num_edges
 
-    def distance(self, i, j):
+    def position(self, i):
         n = int(math.sqrt(self.num_nodes))
-        i_location = i % n, int(i / n)
-        j_location = j % n, int(j / n)
-        return euclidean(i_location, j_location)
+        return i % n, int(i / n)
+
+    def distance(self, i, j):
+        return euclidean(self.position(i), self.position(j))
 
     def randomize(self):
         graph = nx.gnm_random_graph(self.num_nodes, self.num_edges)
         for edge in graph.edges:
             graph.edges[edge]['weight'] = self.distance(*edge)
-        return GraphDataset(graph, self.distance)
+        return GraphDataset(graph, self.distance, self.position)

@@ -27,4 +27,4 @@ class GraphOptimizerBase(abc.ABC):
         min_arg = self._optimal_matrix()
         result = np.multiply(self.graph_cost.distance_matrix, min_arg)
         graph = nx.from_numpy_matrix(result)
-        return GraphDataset(graph, self.graph_cost.distance)
+        return GraphDataset(graph, self.graph_cost.distance, self.graph_cost.position)
