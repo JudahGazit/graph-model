@@ -139,47 +139,27 @@ class GraphMetrics:
         result = MetricResult(fuel_cost, self.cost_boundaries.fuel)
         logger.debug('end fuel cost')
         return result
-    #
-    # def collision_cost(self):
-    #     edges = self.igraph.get_edgelist()
-    #     collision_count = 0
-    #     for e1, e2 in itertools.combinations(edges, 2):
-    #         if len(set(e1 + e2)) == 4:
-    #             [x0, y0], [x1, y1] = self.positions(e1[0]), self.positions(e1[1])
-    #             [x2, y2], [x3, y3] = self.positions(e2[0]), self.positions(e2[1])
-    #             m1 = (y1 - y0) / (x1 - x0) if x0 != x1 else None
-    #             m2 = (y3 - y2) / (x3 - x2) if x2 != x3 else None
-    #             if m1 is None or m2 is None:
-    #                 y = None
-    #                 if m2 is not None:
-    #                     x = x0
-    #                     y = (x - x2) * m2 + y2
-    #                 elif m1 is not None:
-    #                     x = x2
-    #                     y = (x - x0) * m1 + y0
-    #                 if y is not None and min([y0, y1]) < y < max([y0, y1]) and min([y2, y3]) < y < max([y2, y3]):
-    #                     collision_count += 1
-    #             elif m1 != m2:
-    #                 x = (x0 * m1 - x2 * m2 + y2 - y0) / (m1 - m2)
-    #                 if min([x0, x1]) < x < max([x0, x1]) and min([x2, x3]) < x < max([x2, x3]):
-    #                     collision_count += 1
-    #     return MetricResult(collision_count)
 
-    def collision_cost(self, grid_scale=500):
+    def collision_cost(self, grid_scale=2):
         if self.positions is not None:
-            n = int(np.sqrt(self.number_of_nodes))
-            mat = np.asmatrix(np.zeros([grid_scale * (n - 1) + 1, grid_scale * (n - 1) + 1]))
+            n = grid_scale * (int(np.sqrt(self.number_of_nodes)) - 1) + 1
+            mat = np.empty([n, n], np.object)
             edges = self.igraph.get_edgelist()
             for u, v in edges:
                 pos_u = np.array(self.positions(u)) * grid_scale
                 pos_v = np.array(self.positions(v)) * grid_scale
                 gridded_line = tuple(bresenham(*pos_u, *pos_v))
-                # print(pos_u, pos_v, gridded_line)
                 for x, y in gridded_line:
-                    mat[y, x] += 1
-            # print(mat[::-1])
-            mat[::grid_scale, ::grid_scale] = 0
-            # print(mat[::-1])
-            intersections = np.sum(mat[mat > 1] - 1)
-            return MetricResult(intersections)
+                    mat[y, x] = set() if mat[y, x] is None else mat[y, x]
+                    mat[y, x].add((u, v))
+            mat[::grid_scale, ::grid_scale] = None
+            cell_len = np.vectorize(lambda x: len(x) if x is not None else 0)
+            intersections = mat[cell_len(mat) > 1].tolist()
+            intersections_unique = set()
+            for intersection in intersections:
+                for u, v in itertools.combinations(intersection, 2):
+                    if len({*u, *v}) == 4:
+                        intersections_unique.add((*u, *v))
+            intersections = len(intersections_unique)
+            return MetricResult(intersections, MetricBoundaries(100))
         return MetricResult(-1)
