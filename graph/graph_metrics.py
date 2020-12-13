@@ -1,17 +1,15 @@
 import itertools
 import logging
-import math
 import random
-from collections import namedtuple
-from dataclasses import dataclass
 
+from bresenham import bresenham
 import igraph
 import networkx as nx
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import cityblock
 import scipy.sparse.csgraph
 from bentley_ottmann.planar import segments_intersections
+from scipy.spatial.distance import cityblock
 
 from graph.metric_result import MetricResult, MetricBoundaries
 
@@ -167,12 +165,21 @@ class GraphMetrics:
     #                     collision_count += 1
     #     return MetricResult(collision_count)
 
-    def collision_cost(self):
+    def collision_cost(self, grid_scale=500):
         if self.positions is not None:
-            nodes = set([self.positions(u) for u in range(self.number_of_nodes)])
+            n = int(np.sqrt(self.number_of_nodes))
+            mat = np.asmatrix(np.zeros([grid_scale * (n - 1) + 1, grid_scale * (n - 1) + 1]))
             edges = self.igraph.get_edgelist()
-            edges = [(self.positions(u), self.positions(v)) for u, v in edges]
-            intersections = set(segments_intersections(edges, accurate=False, validate=False).keys())
-            intersections = intersections.difference(nodes)
-            return MetricResult(len(intersections))
-        return MetricResult(None)
+            for u, v in edges:
+                pos_u = np.array(self.positions(u)) * grid_scale
+                pos_v = np.array(self.positions(v)) * grid_scale
+                gridded_line = tuple(bresenham(*pos_u, *pos_v))
+                # print(pos_u, pos_v, gridded_line)
+                for x, y in gridded_line:
+                    mat[y, x] += 1
+            # print(mat[::-1])
+            mat[::grid_scale, ::grid_scale] = 0
+            # print(mat[::-1])
+            intersections = np.sum(mat[mat > 1] - 1)
+            return MetricResult(intersections)
+        return MetricResult(-1)
