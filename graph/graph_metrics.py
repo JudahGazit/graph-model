@@ -142,24 +142,14 @@ class GraphMetrics:
 
     def collision_cost(self, grid_scale=2):
         if self.positions is not None:
-            n = grid_scale * (int(np.sqrt(self.number_of_nodes)) - 1) + 1
-            mat = np.empty([n, n], np.object)
-            edges = self.igraph.get_edgelist()
-            for u, v in edges:
-                pos_u = np.array(self.positions(u)) * grid_scale
-                pos_v = np.array(self.positions(v)) * grid_scale
-                gridded_line = tuple(bresenham(*pos_u, *pos_v))
-                for x, y in gridded_line:
-                    mat[y, x] = set() if mat[y, x] is None else mat[y, x]
-                    mat[y, x].add((u, v))
-            mat[::grid_scale, ::grid_scale] = None
-            cell_len = np.vectorize(lambda x: len(x) if x is not None else 0)
-            intersections = mat[cell_len(mat) > 1].tolist()
-            intersections_unique = set()
-            for intersection in intersections:
-                for u, v in itertools.combinations(intersection, 2):
-                    if len({*u, *v}) == 4:
-                        intersections_unique.add((*u, *v))
-            intersections = len(intersections_unique)
+            node_positions = [grid_scale * np.array(self.positions(i)) for i in range(self.number_of_nodes)]
+            edges = pd.DataFrame([[row] for row in self.igraph.get_edgelist()], columns=['edge'])
+            edges['path'] = edges['edge'].apply(lambda row: tuple(bresenham(*node_positions[row[0]], *node_positions[row[1]])),)
+            edges = edges.explode('path').groupby('path', as_index=False).agg(set)
+            edges = edges[edges['path'].apply(lambda point: point[0] % grid_scale != 0 or point[1] % grid_scale != 0)]
+            edges = edges[edges['edge'].str.len() > 1]
+            edges['edge'] = edges['edge'].apply(lambda intersection: [(*u, *v) for u, v in itertools.combinations(intersection, 2) if len({*u, *v}) == 4])
+            edges = edges.explode('edge').dropna()
+            intersections = edges['edge'].drop_duplicates().size
             return MetricResult(intersections, MetricBoundaries(100))
         return MetricResult(-1)
