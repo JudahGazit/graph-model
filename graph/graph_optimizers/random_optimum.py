@@ -12,7 +12,7 @@ def stirling_approx_ln_choose(n, k):
 
 class RandomOptimum(GraphOptimizerBase):
     def __randomize_matrix(self):
-        edges_vec = self._randomize_edges()
+        edges_vec = self.randomize_edges()
         mat = self.graph_cost.triangular_to_mat(edges_vec)
         value = self.graph_cost.cost(mat)
         return mat, value

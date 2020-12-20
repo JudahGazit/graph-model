@@ -73,7 +73,7 @@ class GeneticAlgorithm(GraphOptimizerBase):
         plt.pause(0.05)
 
     def _optimal_matrix(self):
-        population = [self._randomize_edges() for _ in range(self.n_parents)]
+        population = [self.randomize_edges() for _ in range(self.n_parents)]
         best_mats = []
         best_mat = None
         best_score = None
@@ -92,7 +92,7 @@ class GeneticAlgorithm(GraphOptimizerBase):
                             time_from_last_change)
                 pop_after_sel = self.__selection(pop_after_fit)
 
-                pop_after_sel.append(self._randomize_edges())
+                pop_after_sel.append(self.randomize_edges())
                 pop_after_sel.append(random.choice(best_mats))
                 # pop_after_sel.extend(random.sample(best_mats, min([time_from_last_change, len(best_mats)])))
 

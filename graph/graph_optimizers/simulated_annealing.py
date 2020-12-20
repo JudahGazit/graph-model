@@ -92,7 +92,7 @@ def load_distance_mat_of_brain(nodes_num):
 
 class SimulatedAnnealing(GraphOptimizerBase):
     def _optimal_matrix(self):
-        initial_edges_vec = self._randomize_edges()
+        initial_edges_vec = self.randomize_edges()
         initial_state = self.graph_cost.triangular_to_mat(initial_edges_vec)
         annealer = _GraphAnnealer(self.graph_cost, initial_state)
         res, cost = annealer.anneal()

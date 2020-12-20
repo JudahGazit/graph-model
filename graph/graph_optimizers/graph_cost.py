@@ -55,16 +55,9 @@ class GraphCost(abc.ABC):
         total_cost = (self.wiring_factor or 0) * (w - 1) ** 2 + \
                      (self.routing_factor or 0) * (r - 1) ** 2 + \
                      (self.fuel_factor or 0) * (f - 1) ** 2
-        total_cost += graph_metrics.collision_cost().value / 100
+        # total_cost += graph_metrics.collision_cost().value / 100
         # total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
         return - total_cost
-
-    def triangular_index(self, i, row_index=0):
-        num_rows = self.num_nodes - (row_index + 1)
-        if i < num_rows:
-            return 0, i + 1
-        res = self.triangular_index(i - num_rows, row_index + 1)
-        return res[0] + 1, res[1] + 1
 
     def cost(self, mat):
         matrix = np.multiply(self.distance_matrix, mat)

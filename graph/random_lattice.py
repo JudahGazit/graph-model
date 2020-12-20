@@ -4,19 +4,20 @@ import networkx as nx
 from scipy.spatial.distance import euclidean
 
 from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_optimizers.graph_cost import GraphCostTorus
 
 
 class RandomLattice:
     def __init__(self, num_nodes, num_edges):
         self.num_nodes = num_nodes
         self.num_edges = num_edges
+        self.cost = GraphCostTorus(num_nodes, None, None, None, 'maximize')
 
     def position(self, i):
-        n = int(math.sqrt(self.num_nodes))
-        return i % n, int(i / n)
+        return self.cost.position(i)
 
     def distance(self, i, j):
-        return euclidean(self.position(i), self.position(j))
+        return self.cost.distance(i, j)
 
     def randomize(self):
         graph = nx.gnm_random_graph(self.num_nodes, self.num_edges)
