@@ -5,8 +5,8 @@ import networkx as nx
 import pandas as pd
 
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_metrics import GraphMetrics
-from graph.metric_result import MetricResult
+from graph.metrics.graph_metrics import GraphMetrics
+from graph.metrics.Metric import Metric
 
 logger = logging.getLogger('formatter')
 
@@ -34,7 +34,7 @@ class GraphFormatter:
         if bins and bins_type == 'data':
             df['bins'] = pd.cut(df[group_column], 20, include_lowest=True, right=False).apply(str)
             df = df.groupby('bins', as_index=False).agg({agg_column: method})
-        elif bins and bins_type == 'distances':
+        elif bins and bins_type == 'distances_f':
             df['bins'] = pd.cut(df[group_column], self.distances_bins[1], include_lowest=True, right=False).apply(str)
             df = df.groupby('bins', as_index=False).agg({agg_column: method})
             df = df.merge(self.distances_bins[0], on=['bins'])
@@ -81,7 +81,7 @@ class GraphFormatter:
         logger.debug('start formatting charts')
         charts = {
             'edge-length-dist': self.__edge_length_dist_chart(),
-            'edge-length-dist-dbins': self.__edge_length_dist_chart('distances'),
+            'edge-length-dist-dbins': self.__edge_length_dist_chart('distances_f'),
             'degree-histogram': self.__degree_dist_chart(),
             'node-path-len-dist': self.__node_path_length_dist_chart(),
             'nodes-distance-dist': self.__node_path_length_dist_chart(True, True),
@@ -97,8 +97,8 @@ class GraphFormatter:
         number_of_nodes = self.graph.number_of_nodes()
         number_of_edges = self.graph.number_of_edges()
         metrics = {
-            'number-of-nodes': MetricResult(number_of_nodes),
-            'number-of-edges': MetricResult(number_of_edges),
+            'number-of-nodes': Metric(number_of_nodes),
+            'number-of-edges': Metric(number_of_edges),
             'wiring-cost': self.graph_metrics.wiring_cost(),
             'routing-cost': self.graph_metrics.routing_cost(),
             'fuel-cost': self.graph_metrics.fuel_cost(),

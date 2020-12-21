@@ -11,7 +11,7 @@ class MetricBoundaries:
     mean_value: float = None
 
 
-class MetricResult:
+class Metric:
     def __init__(self, value, metric_boundaries=None):
         self.value = value
         self.metric_boundaries = metric_boundaries or MetricBoundaries()
@@ -51,19 +51,19 @@ class MetricResult:
 class MetricResultTests(unittest.TestCase):
     def test_no_normalization(self):
         value = 50
-        mr = MetricResult(value)
+        mr = Metric(value)
         self.assertEquals(value, mr.normalized_value)
 
     def test_infinity(self):
         value = float('inf')
-        mr = MetricResult(value)
+        mr = Metric(value)
         self.assertEquals(float('-inf'), mr.normalized_value)
 
     def test_optimal_and_worst(self):
         value = 50
         optimal = 0
         worst = 100
-        mr = MetricResult(value, MetricBoundaries(optimal, worst))
+        mr = Metric(value, MetricBoundaries(optimal, worst))
         self.assertEquals(0.5, mr.normalized_value)
         self.assertEquals(50, mr.metric_boundaries.mean_value)
 
@@ -71,12 +71,12 @@ class MetricResultTests(unittest.TestCase):
         value = 50
         optimal = 0
         mean = 50
-        mr = MetricResult(value, MetricBoundaries(optimal, mean_value=mean))
+        mr = Metric(value, MetricBoundaries(optimal, mean_value=mean))
         self.assertEquals(0.5, mr.normalized_value)
         self.assertEquals(100, mr.metric_boundaries.worst_value)
 
     def test_only_optimal(self):
         value = 2.5476
         optimal = 1.7917
-        mr = MetricResult(value, MetricBoundaries(optimal))
+        mr = Metric(value, MetricBoundaries(optimal))
         self.assertAlmostEqual(0.7033, mr.normalized_value, 4)

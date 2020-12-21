@@ -1,15 +1,13 @@
-import matplotlib.pyplot as plt
 import abc
 import itertools
 import math
 
 import numpy as np
-import scipy.stats
 from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
 from graph.graph_categories.graph_categories import GraphDataset
-from graph.graph_metrics import GraphMetrics, CostBoundaries
+from graph.metrics.graph_metrics import GraphMetrics, CostBoundaries
 
 
 class GraphCost(abc.ABC):
