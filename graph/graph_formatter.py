@@ -1,19 +1,18 @@
-import numpy as np
 import logging
 import random
 
 import networkx as nx
 import pandas as pd
 
+from graph.graph_categories.graph_categories import GraphDataset
 from graph.graph_metrics import GraphMetrics
 from graph.metric_result import MetricResult
-from graph.graph_categories.graph_categories import GraphDataset
-
 
 logger = logging.getLogger('formatter')
 
+
 class GraphFormatter:
-    def __init__(self, graph: GraphDataset, topology='circular'):
+    def __init__(self, graph: GraphDataset):
         self.graph = graph.graph
         self.distances = graph.distances
         self.df = self.format_graph_to_df(self.graph)
@@ -134,7 +133,8 @@ class GraphFormatter:
     def __degree_and_degree_of_neighbours(self):
         degrees = pd.DataFrame(self.graph.degree, columns=['node', 'degree'])
         edges = pd.DataFrame(self.graph.edges, columns=['src', 'dst'])
-        edges = edges.merge(degrees, left_on=['src'], right_on=['node']).merge(degrees, left_on=['dst'], right_on=['node'])
+        edges = edges.merge(degrees, left_on=['src'], right_on=['node']).merge(degrees, left_on=['dst'],
+                                                                               right_on=['node'])
         edges = edges[['src', 'dst', 'degree_x', 'degree_y']]
         edges = edges.groupby('src', as_index=False).mean().groupby('degree_x', as_index=False).mean()
         return {
