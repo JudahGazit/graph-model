@@ -56,7 +56,7 @@ class GraphCost(abc.ABC):
                      (self.routing_factor or 0) * (r - 1) ** 2 + \
                      (self.fuel_factor or 0) * (f - 1) ** 2
         # total_cost += graph_metrics.collision_cost().value / 100
-        # total_cost += 0.1 * (w ** 2 + r ** 2 + f ** 2)
+        # total_cost += 0.01 * (w ** 2 + r ** 2 + f ** 2)
         return - total_cost
 
     def cost(self, mat):
