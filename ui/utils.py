@@ -69,10 +69,10 @@ def display_graph_as_lattice(graph: nx.Graph):
     display_graph(graph, node_method, edge_method=None)
 
 def display_metrics(metrics):
-    metric_df = [(metric, values['value'], values['normalized_value'], values.get('normalized_factor'))
+    metric_df = [(metric, values['value'], values['normalized_value'], values.get('optimal_value'), values.get('worst_value'))
                  for metric, values in metrics.items()]
     metric_df = pd.DataFrame(metric_df,
-                             columns=['Metric', 'Value', 'Efficiency', 'Expected Value (in best scenario)'])
+                             columns=['Metric', 'Value', 'Efficiency', 'Optimal Value', 'Worst Value'])
     st.subheader('Metrics')
     st.dataframe(metric_df)
 

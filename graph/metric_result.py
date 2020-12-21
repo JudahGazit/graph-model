@@ -42,7 +42,9 @@ class MetricResult:
         return {
             "value": self.value,
             "normalized_value": self.normalized_value,
-            "normalized_factor": self.metric_boundaries.optimal_value
+            "normalized_factor": self.metric_boundaries.optimal_value,
+            "optimal_value": self.metric_boundaries.optimal_value,
+            "worst_value": self.metric_boundaries.worst_value,
         }
 
 
