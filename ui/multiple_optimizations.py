@@ -12,10 +12,10 @@ def _get_parameters(loader):
     selected_cost_type = st.sidebar.selectbox('Topology', cost_types)
     for option in loader.options:
         if option.cost_type == selected_cost_type:
-            key = int(option.nodes), int(option.edges)
+            key = int(option.nodes), int(option.edges), option.remark
             value = (option.wiring_factor, option.routing_factor, option.fuel_factor)
             nodes_edges[key] = nodes_edges.get(key, []) + [value]
-    selected_nodes_edges = st.sidebar.radio('(Nodes, Edges)', sorted(nodes_edges),
+    selected_nodes_edges = st.sidebar.radio('(Nodes, Edges, REMARK)', sorted(nodes_edges),
                                             format_func=lambda v: ', '.join(map(str, v)))
     selected_params = st.sidebar.selectbox('(Wiring, Routing, Fuel)',
                                        sorted(nodes_edges[selected_nodes_edges], reverse=True,
