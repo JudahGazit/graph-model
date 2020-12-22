@@ -5,7 +5,7 @@ import pandas as pd
 from bresenham import bresenham
 
 from graph.metrics.Metric import Metric, MetricBoundaries
-from graph.metrics.icost import ICost
+from graph.metrics.costs.icost import ICost
 
 
 class IntersectionCost(ICost):

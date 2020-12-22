@@ -2,7 +2,7 @@ import igraph
 import numpy as np
 
 from graph.metrics.Metric import Metric
-from graph.metrics.icost import ICost
+from graph.metrics.costs.icost import ICost
 
 
 class RoutingCost(ICost):

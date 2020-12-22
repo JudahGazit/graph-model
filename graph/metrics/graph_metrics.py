@@ -5,10 +5,10 @@ import networkx as nx
 import numpy as np
 
 from graph.metrics.Metric import MetricBoundaries
-from graph.metrics.fuel_cost import FuelCost
-from graph.metrics.intersection_cost import IntersectionCost
-from graph.metrics.routing_cost import RoutingCost
-from graph.metrics.wiring_cost import WiringCost
+from graph.metrics.costs.fuel_cost import FuelCost
+from graph.metrics.costs.intersection_cost import IntersectionCost
+from graph.metrics.costs.routing_cost import RoutingCost
+from graph.metrics.costs.wiring_cost import WiringCost
 
 logger = logging.getLogger('metrics')
 

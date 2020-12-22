@@ -1,12 +1,8 @@
-import itertools
-
 import igraph
-import networkx as nx
 import numpy as np
-import pandas as pd
 
 from graph.metrics.Metric import Metric, MetricBoundaries
-from graph.metrics.icost import ICost
+from graph.metrics.costs.icost import ICost
 
 
 class FuelCost(ICost):
