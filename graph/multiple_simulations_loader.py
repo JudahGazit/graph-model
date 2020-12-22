@@ -82,6 +82,7 @@ class MultipleOptimizationsLoader:
         return result
 
     def load(self, strategy, cost_type, nodes, edges, remark, wiring_factor, routing_factor, fuel_factor):
+        remark = "_" + remark if len(remark) else remark
         files = glob(
             f'optimize_results/{cost_type}/{nodes}_{edges}{remark}/{wiring_factor}_{routing_factor}_{fuel_factor}/*.json')
         data = self._load_files(files)
