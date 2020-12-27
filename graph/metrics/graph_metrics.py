@@ -7,6 +7,7 @@ import numpy as np
 from graph.metrics.Metric import MetricBoundaries
 from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.intersection_cost import IntersectionCost
+from graph.metrics.costs.modularity_cost import ModularityCost
 from graph.metrics.costs.routing_cost import RoutingCost
 from graph.metrics.costs.wiring_cost import WiringCost
 
@@ -83,3 +84,7 @@ class GraphMetrics:
         result = self._intersection.cost()
         logger.debug('end intersection cost')
         return result
+
+    def modularity_cost(self):
+        result = ModularityCost(self.number_of_nodes, self.number_of_edges, self.adjacency, self.distances, self.positions, self.graph, None)
+        return result.cost()

@@ -1,6 +1,5 @@
 import math
 import unittest
-from collections import namedtuple
 from dataclasses import dataclass
 
 
