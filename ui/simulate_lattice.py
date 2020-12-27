@@ -11,6 +11,7 @@ def _get_parameters():
     num_nodes = st.sidebar.select_slider('Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
     mean_degree = st.sidebar.slider('Mean Degree', 1.5, 40.0, 2.0, 0.01)
     num_edges = int(num_nodes * mean_degree / 2)
+    st.title(f'Torus - {int(np.sqrt(num_nodes))}x{int(np.sqrt(num_nodes))}')
     return num_nodes, num_edges
 
 

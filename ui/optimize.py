@@ -6,6 +6,7 @@ from pathos.multiprocessing import ProcessPool
 from graph.graph_formatter import GraphFormatter
 from graph.graph_optimizer import GraphOptimizer
 from ui.utils import *
+import numpy as np
 
 last_parameters = None
 current_graph = None
@@ -35,6 +36,7 @@ def _get_parameters():
     routing_factor = st.sidebar.slider('Target Routing', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Routing?', True) else None
     fuel_factor = st.sidebar.slider('Target Fuel', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Fuel?', True) else None
     num_edges = int(num_nodes * mean_degree / 2)
+    st.title(f'{cost_type.title()} - {int(np.sqrt(num_nodes))}x{int(np.sqrt(num_nodes))}')
     return OptimizeParameters(num_nodes, num_edges, cost_type, wiring_factor, routing_factor, fuel_factor)
 
 
