@@ -11,8 +11,6 @@ from graph.metrics.Metric import MetricBoundaries
 from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.routing_cost import RoutingCost
 from graph.metrics.costs.wiring_cost import WiringCost
-from graph.metrics.graph_metrics import GraphMetrics, CostBoundaries
-
 
 costs_mapping = dict(
     wiring=WiringCost,

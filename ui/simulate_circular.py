@@ -34,7 +34,7 @@ def simulate():
 
     if last_parameters == (N, A, B, alpha, beta):
         formatter = GraphFormatter(current_graph)
-        display_graph_in_circle(current_graph.graph)
+        display_graph_in_circle(current_graph.nx_graph)
         display_metrics(formatter.format_metrics())
         display_charts(formatter.format_chart())
     else:
