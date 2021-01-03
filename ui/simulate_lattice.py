@@ -26,7 +26,7 @@ def simulate_lattice():
 
     if current_parameters == (nodes, edges):
         formatter = GraphFormatter(current_graph)
-        display_graph_as_lattice(current_graph.graph)
+        display_graph_as_lattice(current_graph.nx_graph)
         display_metrics(formatter.format_metrics())
         display_charts(formatter.format_chart())
     else:

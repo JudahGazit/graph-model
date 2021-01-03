@@ -2,15 +2,11 @@ import os
 from abc import ABC
 from typing import Callable
 
-import pandas as pd
 import networkx as nx
+import numpy as np
+import pandas as pd
 
-
-class GraphDataset:
-    def __init__(self, graph: nx.Graph, distances=None, positions=None):
-        self.graph = graph
-        self.distances = distances
-        self.positions = positions
+from graph.graph_dataset import GraphDataset
 
 
 class GraphCategoryBase(ABC):
@@ -32,6 +28,7 @@ class GraphCategoryBase(ABC):
         if self.override_weights:
             for edge in graph.edges:
                 graph.edges[edge]['weight'] = distances(*edge)
+        distances = np.mat([[distances(i, j) for j in range(graph.number_of_nodes())] for i in range(graph.number_of_nodes())])
         return GraphDataset(graph, distances)
 
     def _filter_dir(self, filename):

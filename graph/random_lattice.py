@@ -3,7 +3,7 @@ import math
 import networkx as nx
 from scipy.spatial.distance import euclidean
 
-from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_dataset import GraphDataset
 from graph.graph_optimizers.graph_cost import GraphCostTorus
 
 
@@ -23,4 +23,4 @@ class RandomLattice:
         graph = nx.gnm_random_graph(self.num_nodes, self.num_edges)
         for edge in graph.edges:
             graph.edges[edge]['weight'] = self.distance(*edge)
-        return GraphDataset(graph, self.distance, self.position)
+        return GraphDataset(graph, self.cost.distance_matrix, self.position)

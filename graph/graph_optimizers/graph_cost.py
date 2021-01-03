@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
-from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_dataset import GraphDataset
 from graph.metrics.graph_metrics import GraphMetrics, CostBoundaries
 
 
@@ -27,7 +27,9 @@ class GraphCost(abc.ABC):
         raise NotImplementedError()
 
     def create_graph_metrics(self, matrix, **kwargs):
-        return GraphMetrics(GraphDataset(None, self.distance_matrix.item, self.position), matrix, cost_boundaries=self.cost_boundaries)
+        return GraphMetrics(GraphDataset(distances=self.distance_matrix,
+                                         positions=self.position,
+                                         adjacency=matrix), cost_boundaries=self.cost_boundaries)
 
     def _create_distance_matrix(self):
         mat = np.mat([[self.distance(i, j) for j in range(self.num_nodes)]

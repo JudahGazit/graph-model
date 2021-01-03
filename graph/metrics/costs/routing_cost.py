@@ -7,9 +7,10 @@ from graph.metrics.costs.icost import ICost
 
 class RoutingCost(ICost):
     def __optimal_routing_cost(self):
-        number_of_pairs = self.number_of_nodes * (self.number_of_nodes - 1) / 2
-        number_of_pairs_in_distance_1 = self.number_of_edges
-        number_of_pairs_in_distance_2 = number_of_pairs - self.number_of_edges
+        num_nodes = self.graph_dataset.number_of_nodes
+        number_of_pairs = num_nodes * (num_nodes - 1) / 2
+        number_of_pairs_in_distance_1 = num_nodes
+        number_of_pairs_in_distance_2 = number_of_pairs - num_nodes
         mean_degree = (number_of_pairs_in_distance_1 + 2 * number_of_pairs_in_distance_2) / number_of_pairs
         return mean_degree
 
@@ -28,14 +29,15 @@ class RoutingCost(ICost):
     def __worst_routing_cost(self):
         adjacency = self.__create_chain_graph()
         last_insert = 0
-        for iteration in range(self.number_of_edges - self.number_of_nodes + 1):
+        for iteration in range(self.graph_dataset.number_of_edges - self.graph_dataset.number_of_nodes + 1):
             last_insert = self.__add_loop_edge(adjacency, last_insert)
         mean_path = self.__mean_shortest_path(adjacency)
         return mean_path
 
     def __create_chain_graph(self):
-        edges = np.zeros([self.number_of_nodes, self.number_of_nodes])
-        for i in range(self.number_of_nodes - 1):
+        num_nodes = self.graph_dataset.number_of_nodes
+        edges = np.zeros([num_nodes, num_nodes])
+        for i in range(num_nodes - 1):
             edges[i, i + 1] = 1
             edges[i + 1, i] = 1
         return edges

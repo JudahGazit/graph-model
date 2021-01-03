@@ -3,7 +3,8 @@ from typing import Callable
 import networkx as nx
 from geopy.distance import geodesic
 
-from graph.graph_categories.graph_categories import GraphMLGraphCategory, GraphDataset
+from graph.graph_categories.graph_categories import GraphMLGraphCategory
+from graph.graph_dataset import GraphDataset
 
 
 class StreetNetwork(GraphMLGraphCategory):

@@ -78,7 +78,7 @@ def optimize():
 
     if last_parameters == optimize_parameters:
         formatter = GraphFormatter(current_graph)
-        _display_graph_by_cost_type(current_graph.graph, optimize_parameters.cost_type)
+        _display_graph_by_cost_type(current_graph.nx_graph, optimize_parameters.cost_type)
         display_metrics(formatter.format_metrics())
         display_charts(formatter.format_chart())
     else:

@@ -4,7 +4,7 @@ import random
 import networkx as nx
 import pandas as pd
 
-from graph.graph_categories.graph_categories import GraphDataset
+from graph.graph_dataset import GraphDataset
 from graph.metrics.graph_metrics import GraphMetrics
 from graph.metrics.Metric import Metric
 
@@ -12,12 +12,11 @@ logger = logging.getLogger('formatter')
 
 
 class GraphFormatter:
-    def __init__(self, graph: GraphDataset):
-        self.graph = graph.graph
-        self.distances = graph.distances
-        self.df = self.format_graph_to_df(self.graph)
-        self.distances_bins = self.__distances_bins(self.graph, self.distances)
-        self.graph_metrics = GraphMetrics(graph)
+    def __init__(self, graph_dataset: GraphDataset):
+        self.graph_dataset = graph_dataset
+        self.df = self.format_graph_to_df(self.graph_dataset.nx_graph)
+        self.distances_bins = self.__distances_bins(self.graph_dataset.nx_graph, self.graph_dataset.distances.item)
+        self.graph_metrics = GraphMetrics(graph_dataset)
 
     def format_graph_to_df(self, graph):
         result = []
@@ -51,7 +50,7 @@ class GraphFormatter:
         return result
 
     def __degree_dist_chart(self):
-        degree_histogram = nx.degree_histogram(self.graph)
+        degree_histogram = nx.degree_histogram(self.graph_dataset.nx_graph)
         result = {'x': list(range(len(degree_histogram)))[:500],
                   'y': degree_histogram[:500]}
         return result
@@ -66,11 +65,11 @@ class GraphFormatter:
         return self.df.to_dict('records')
 
     def format_graph_sample(self, max_depth=10):
-        logger.debug('start formatting graph sample')
-        random_node = random.choice(list(self.graph.nodes))
-        nodes_in_reach = nx.algorithms.bfs_tree(self.graph, random_node, depth_limit=max_depth).nodes()
-        sampled_graph = self.graph.subgraph(list(nodes_in_reach)[:500])
-        logger.debug('end formatting graph sample')
+        logger.debug('start formatting graph_dataset sample')
+        random_node = random.choice(range(self.graph_dataset.number_of_nodes))
+        nodes_in_reach = nx.algorithms.bfs_tree(self.graph_dataset.nx_graph, random_node, depth_limit=max_depth).nodes()
+        sampled_graph = self.graph_dataset.nx_graph.subgraph(list(nodes_in_reach)[:500])
+        logger.debug('end formatting graph_dataset sample')
         return self.format_graph_to_df(sampled_graph).to_dict('records')
 
     def __heaviest_edge_weight(self, graph):
@@ -93,12 +92,9 @@ class GraphFormatter:
         return charts
 
     def format_metrics(self):
-        logger.debug('start formatting metrics')
-        number_of_nodes = self.graph.number_of_nodes()
-        number_of_edges = self.graph.number_of_edges()
         metrics = {
-            'number-of-nodes': Metric(number_of_nodes),
-            'number-of-edges': Metric(number_of_edges),
+            'number-of-nodes': Metric(self.graph_dataset.number_of_nodes),
+            'number-of-edges': Metric(self.graph_dataset.number_of_edges),
             'wiring-cost': self.graph_metrics.wiring_cost(),
             'routing-cost': self.graph_metrics.routing_cost(),
             'fuel-cost': self.graph_metrics.fuel_cost(),
@@ -123,8 +119,8 @@ class GraphFormatter:
         return pairs, bins
 
     def __node_degree_and_edge_length_correlation(self):
-        degrees = [degree for node, degree in sorted(self.graph.degree)]
-        node_average_edge_dist = nx.to_numpy_array(self.graph).mean(axis=0)
+        degrees = [degree for node, degree in sorted(self.graph_dataset.nx_graph.degree)]
+        node_average_edge_dist = nx.to_numpy_array(self.graph_dataset.nx_graph).mean(axis=0)
         return {
             'x': degrees,
             'y': node_average_edge_dist.tolist(),
@@ -132,8 +128,8 @@ class GraphFormatter:
         }
 
     def __degree_and_degree_of_neighbours(self):
-        degrees = pd.DataFrame(self.graph.degree, columns=['node', 'degree'])
-        edges = pd.DataFrame(self.graph.edges, columns=['src', 'dst'])
+        degrees = pd.DataFrame(self.graph_dataset.nx_graph.degree, columns=['node', 'degree'])
+        edges = pd.DataFrame(self.graph_dataset.nx_graph.edges, columns=['src', 'dst'])
         edges = edges.merge(degrees, left_on=['src'], right_on=['node']).merge(degrees, left_on=['dst'],
                                                                                right_on=['node'])
         edges = edges[['src', 'dst', 'degree_x', 'degree_y']]
@@ -144,6 +140,6 @@ class GraphFormatter:
         }
 
     def __triangles_hist(self):
-        triangles = pd.DataFrame(nx.triangles(self.graph).values(), columns=['x'])
+        triangles = pd.DataFrame(nx.triangles(self.graph_dataset.nx_graph).values(), columns=['x'])
         triangles['y'] = 1
         return self.__agg_df(triangles, 'x', 'y', True).to_dict('list')
