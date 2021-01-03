@@ -12,7 +12,7 @@ from graph.metrics.Metric import MetricBoundaries
 
 
 class ICost(ABC):
-    def __init__(self, graph_dataset: GraphDataset, boundaries: Union[MetricBoundaries, None]):
+    def __init__(self, graph_dataset: GraphDataset, boundaries: Union[MetricBoundaries] = None):
         self.graph_dataset = graph_dataset
         self._boundaries = boundaries or MetricBoundaries()
 

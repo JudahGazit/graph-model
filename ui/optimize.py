@@ -14,7 +14,7 @@ worst_values = None
 
 CIRCULAR = 'circular'
 LATTICE = 'torus'
-COST_TYPES = [CIRCULAR, LATTICE]
+COST_TYPES = [LATTICE]
 
 
 @dataclass
@@ -22,9 +22,21 @@ class OptimizeParameters:
     num_nodes: int
     num_edges: int
     cost_type: str
+    factors: dict
     wiring_factor: float = None
     routing_factor: float = None
     fuel_factor: float = None
+
+
+def _get_factors(factor_names):
+    factors = {}
+    for factor in factor_names:
+        factor_title = factor.title()
+        if st.sidebar.checkbox(f'{factor_title}?', True):
+            factors[factor] = st.sidebar.slider(f'{factor_title} Factor', -1.0, 1.0, 0.0, step=0.01)
+        else:
+            factors[factor] = None
+    return factors
 
 
 def _get_parameters():
@@ -32,12 +44,10 @@ def _get_parameters():
     num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
         'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
     mean_degree = st.sidebar.slider('Mean Degree', 1.5, 40.0, 2.0, step=0.01)
-    wiring_factor = st.sidebar.slider('Target Wiring', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Wiring?', True) else None
-    routing_factor = st.sidebar.slider('Target Routing', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Routing?', True) else None
-    fuel_factor = st.sidebar.slider('Target Fuel', -1.0, 1.0, 0.0, step=0.01) if st.sidebar.checkbox('Fuel?', True) else None
+    factors = _get_factors(['wiring', 'routing', 'fuel'])
     num_edges = int(num_nodes * mean_degree / 2)
     st.title(f'{cost_type.title()} - {int(np.sqrt(num_nodes))}x{int(np.sqrt(num_nodes))}')
-    return OptimizeParameters(num_nodes, num_edges, cost_type, wiring_factor, routing_factor, fuel_factor)
+    return OptimizeParameters(num_nodes, num_edges, cost_type, factors)
 
 
 def _display_graph_by_cost_type(graph, cost_type):
@@ -58,9 +68,7 @@ def _initial_graph(num_nodes, cost_type):
 def optimize_graph(optimize_parameters: OptimizeParameters):
     optimizer = GraphOptimizer(optimize_parameters.num_nodes,
                                optimize_parameters.num_edges,
-                               optimize_parameters.wiring_factor,
-                               optimize_parameters.routing_factor,
-                               optimize_parameters.fuel_factor,
+                               optimize_parameters.factors,
                                'maximize',
                                optimize_parameters.cost_type,
                                'annealing')

@@ -5,6 +5,12 @@ import networkx as nx
 import pandas as pd
 
 from graph.graph_dataset import GraphDataset
+from graph.metrics.costs.fuel_cost import FuelCost
+from graph.metrics.costs.icost import ICost
+from graph.metrics.costs.intersection_cost import IntersectionCost
+from graph.metrics.costs.modularity_cost import ModularityCost
+from graph.metrics.costs.routing_cost import RoutingCost
+from graph.metrics.costs.wiring_cost import WiringCost
 from graph.metrics.graph_metrics import GraphMetrics
 from graph.metrics.Metric import Metric
 
@@ -16,7 +22,6 @@ class GraphFormatter:
         self.graph_dataset = graph_dataset
         self.df = self.format_graph_to_df(self.graph_dataset.nx_graph)
         self.distances_bins = self.__distances_bins(self.graph_dataset.nx_graph, self.graph_dataset.distances.item)
-        self.graph_metrics = GraphMetrics(graph_dataset)
 
     def format_graph_to_df(self, graph):
         result = []
@@ -56,7 +61,7 @@ class GraphFormatter:
         return result
 
     def __node_path_length_dist_chart(self, weight=False, bins=False):
-        df = self.graph_metrics.all_path_lengths(weight)
+        df = ICost(self.graph_dataset).all_path_lengths(weight)
         df = self.__agg_df(df, "dist", "count", bins, method="sum")
         result = df.to_dict('list')
         return result
@@ -95,11 +100,11 @@ class GraphFormatter:
         metrics = {
             'number-of-nodes': Metric(self.graph_dataset.number_of_nodes),
             'number-of-edges': Metric(self.graph_dataset.number_of_edges),
-            'wiring-cost': self.graph_metrics.wiring_cost(),
-            'routing-cost': self.graph_metrics.routing_cost(),
-            'fuel-cost': self.graph_metrics.fuel_cost(),
-            'collision-cost': self.graph_metrics.collision_cost(),
-            'modularity-cost': self.graph_metrics.modularity_cost()
+            'wiring-cost': WiringCost(self.graph_dataset).cost(),
+            'routing-cost': RoutingCost(self.graph_dataset).cost(),
+            'fuel-cost': FuelCost(self.graph_dataset).cost(),
+            'collision-cost': IntersectionCost(self.graph_dataset).cost(),
+            'modularity-cost': ModularityCost(self.graph_dataset).cost()
         }
         metrics = {name: metric.to_dict() for name, metric in metrics.items()}
         logger.debug('end formatting metrics')

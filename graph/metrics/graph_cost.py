@@ -7,29 +7,33 @@ from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
 from graph.graph_dataset import GraphDataset
+from graph.metrics.Metric import MetricBoundaries
+from graph.metrics.costs.fuel_cost import FuelCost
+from graph.metrics.costs.routing_cost import RoutingCost
+from graph.metrics.costs.wiring_cost import WiringCost
 from graph.metrics.graph_metrics import GraphMetrics, CostBoundaries
 
 
+costs_mapping = dict(
+    wiring=WiringCost,
+    routing=RoutingCost,
+    fuel=FuelCost,
+)
+
+
 class GraphCost(abc.ABC):
-    def __init__(self, num_nodes, wiring_factor, routing_factor, fuel_factor, method):
+    def __init__(self, num_nodes, factors: dict, method: str):
         self.num_nodes = num_nodes
-        self.wiring_factor = wiring_factor
-        self.fuel_factor = fuel_factor
+        self.factors = factors
+        self.cost_boundaries = {key: MetricBoundaries() for key in factors}
         self.method = method
         self.distance_matrix = self._create_distance_matrix()
-        self.routing_factor = routing_factor
-        self.cost_boundaries = CostBoundaries()
 
     def distance(self, i, j):
         raise NotImplementedError()
 
     def position(self, i):
         raise NotImplementedError()
-
-    def create_graph_metrics(self, matrix, **kwargs):
-        return GraphMetrics(GraphDataset(distances=self.distance_matrix,
-                                         positions=self.position,
-                                         adjacency=matrix), cost_boundaries=self.cost_boundaries)
 
     def _create_distance_matrix(self):
         mat = np.mat([[self.distance(i, j) for j in range(self.num_nodes)]
@@ -38,26 +42,12 @@ class GraphCost(abc.ABC):
 
     def __calculate_total_cost(self, matrix):
         total_cost = 0
-        graph_metrics = self.create_graph_metrics(matrix)
-        w, r, f = 0, 0, 0
-        if self.wiring_factor is not None:
-            wiring_cost = graph_metrics.wiring_cost()
-            w = wiring_cost.normalized_value
-            self.cost_boundaries.wiring = wiring_cost.metric_boundaries
-        if self.routing_factor is not None:
-            routing_cost = graph_metrics.routing_cost()
-            r = routing_cost.normalized_value
-            self.cost_boundaries.routing = routing_cost.metric_boundaries
-        if self.fuel_factor is not None:
-            fuel_cost = graph_metrics.fuel_cost()
-            f = fuel_cost.normalized_value
-            self.cost_boundaries.fuel = fuel_cost.metric_boundaries
-        total_cost = (self.wiring_factor or 0) * (w - 1) ** 2 + \
-                     (self.routing_factor or 0) * (r - 1) ** 2 + \
-                     (self.fuel_factor or 0) * (f - 1) ** 2
-        # total_cost += graph_metrics.collision_cost().value / 100
-        # total_cost += 0.01 * (w ** 2 + r ** 2 + f ** 2)
-        return - total_cost
+        graph_dataset = GraphDataset(distances=self.distance_matrix, positions=self.position, adjacency=matrix)
+        for cost_name in self.factors:
+            cost = costs_mapping[cost_name](graph_dataset, self.cost_boundaries[cost_name])
+            self.cost_boundaries[cost_name] = cost.boundaries
+            total_cost += self.factors[cost_name] * cost.cost().normalized_value
+        return total_cost
 
     def cost(self, mat):
         matrix = np.multiply(self.distance_matrix, mat)
@@ -146,9 +136,9 @@ class GraphCostFacade:
     type_mapping = {'circular': GraphCostCircular, 'lattice': GraphCostLattice,
                     'sphere': GraphCostSphere, 'torus': GraphCostTorus}
 
-    def get_cost(self, num_nodes, wiring_factor, routing_factor, fuel_factor, method, type, *args, **kwargs):
+    def get_cost(self, num_nodes, factors, method, type):
         cost_class = self.type_mapping[type]
-        return cost_class(num_nodes, wiring_factor, routing_factor, fuel_factor, method, *args, **kwargs)
+        return cost_class(num_nodes, factors, method)
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.spatial.distance import euclidean
 from simanneal import Annealer
 
-from graph.graph_optimizers.graph_cost import GraphCost
+from graph.metrics.graph_cost import GraphCost
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
 
 signal.signal = lambda *args, **kwargs: None
