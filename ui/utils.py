@@ -113,6 +113,9 @@ def fit_exponential_function_to_chart(X, Y):
     return args
 
 
+CHART_HEIGHT = 500
+CHART_WIDTH = 700
+
 def display_exponential(chart_title, chart):
     if isinstance(chart['x'][0], str):
         X, Y = _extract_x_y_from_chart(chart)
@@ -121,7 +124,7 @@ def display_exponential(chart_title, chart):
         X1 = np.linspace(0, len(X) - 1, 100)
         Y1 = exponent(*args, X1)
         exp_line = alt.Chart(pd.DataFrame(zip(X1, Y1), columns=['x', 'y']), title=chart_title,
-                             height=500).mark_line(color='red', strokeWidth=3)
+                             height=CHART_HEIGHT, width=CHART_WIDTH).mark_line(color='red', strokeWidth=3)
         return exp_line
 
 
@@ -131,7 +134,7 @@ def display_charts(charts):
     for chart_title, chart in charts.items():
         c = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']),
                       title=chart_title,
-                      height=500)
+                      height=CHART_HEIGHT, width=CHART_WIDTH)
         c = getattr(c, f'mark_{chart.get("type", "bar")}')()
 
         line = _encode_altair_chart(c, scale)
@@ -147,12 +150,12 @@ def display_chart_with_mean_line(charts):
         altair_charts = []
         for index, y_value in enumerate(chart['ys']):
             c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
-                          height=500).mark_line()
+                          height=CHART_HEIGHT, width=CHART_WIDTH).mark_line()
             altair_charts.append(_encode_altair_chart(c, scale))
 
         altair_chart = reduce(lambda a, b: a + b, altair_charts)
         mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
-                              height=500).mark_line(color='black', strokeWidth=3)
+                              height=CHART_HEIGHT, width=CHART_WIDTH).mark_line(color='black', strokeWidth=3)
         mean_line = _encode_altair_chart(mean_line, scale)
         line = altair_chart + mean_line
         exponential_line = display_exponential(chart_title, chart)
