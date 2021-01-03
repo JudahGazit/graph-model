@@ -25,6 +25,7 @@ class GraphOptimizerBase(abc.ABC):
 
     def optimize(self):
         min_arg = self._optimal_matrix()
-        result = np.multiply(self.graph_cost.distance_matrix, min_arg)
+        simple_graph = (min_arg > 0).astype(int)
+        result = np.multiply(self.graph_cost.distance_matrix, simple_graph)
         graph = nx.from_numpy_matrix(result)
-        return GraphDataset(graph, self.graph_cost.distance_matrix, self.graph_cost.position)
+        return GraphDataset(graph, self.graph_cost.distance_matrix, self.graph_cost.position, widths=min_arg)

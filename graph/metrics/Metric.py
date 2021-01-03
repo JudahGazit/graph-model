@@ -32,7 +32,7 @@ class Metric:
         if math.isinf(self.value):
             return float('-inf')
         if optimal_value is not None and worst_value is not None:
-            return (worst_value - self.value) / (worst_value - self.metric_boundaries.optimal_value)
+            return (worst_value - self.value) / (worst_value - optimal_value)
         elif optimal_value is not None:
             return optimal_value / self.value
         return self.value

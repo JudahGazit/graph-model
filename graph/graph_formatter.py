@@ -5,14 +5,15 @@ import networkx as nx
 import pandas as pd
 
 from graph.graph_dataset import GraphDataset
+from graph.metrics.Metric import Metric
 from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.icost import ICost
 from graph.metrics.costs.intersection_cost import IntersectionCost
 from graph.metrics.costs.modularity_cost import ModularityCost
+from graph.metrics.costs.resistance_cost import ResistanceCost
 from graph.metrics.costs.routing_cost import RoutingCost
+from graph.metrics.costs.volume_cost import VolumeCost
 from graph.metrics.costs.wiring_cost import WiringCost
-from graph.metrics.graph_metrics import GraphMetrics
-from graph.metrics.Metric import Metric
 
 logger = logging.getLogger('formatter')
 
@@ -104,7 +105,9 @@ class GraphFormatter:
             'routing-cost': RoutingCost(self.graph_dataset).cost(),
             'fuel-cost': FuelCost(self.graph_dataset).cost(),
             'collision-cost': IntersectionCost(self.graph_dataset).cost(),
-            'modularity-cost': ModularityCost(self.graph_dataset).cost()
+            'modularity-cost': ModularityCost(self.graph_dataset).cost(),
+            'volume-cost': VolumeCost(self.graph_dataset).cost(),
+            'resistance-cost': ResistanceCost(self.graph_dataset).cost(),
         }
         metrics = {name: metric.to_dict() for name, metric in metrics.items()}
         logger.debug('end formatting metrics')

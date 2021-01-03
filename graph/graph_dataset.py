@@ -29,6 +29,7 @@ class GraphDataset:
 
     def __graph_and_adjacency(self, graph, adjacency):
         self.nx_graph = graph
+        self.__add_width_to_nx_graph()
         if adjacency is not None:
             self.adjacency = adjacency
             self.graph = igraph.Graph.Weighted_Adjacency(adjacency.tolist(), mode=igraph.ADJ_UNDIRECTED) \
@@ -36,3 +37,8 @@ class GraphDataset:
         else:
             self.adjacency = nx.to_numpy_matrix(graph)
             self.graph = igraph.Graph.from_networkx(graph) if self.number_of_nodes <= 500 else None
+
+    def __add_width_to_nx_graph(self):
+        if self.widths is not None:
+            for edge in self.nx_graph.edges:
+                self.nx_graph.edges[edge]['width'] = self.widths[edge[0], edge[1]]

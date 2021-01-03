@@ -64,9 +64,11 @@ def display_graph_as_lattice(graph: nx.Graph):
         graph.nodes[node]['pos'] = f'{pos_x},{pos_y}!'
 
     def edge_method(graph, edge, node_index):
-        graph.edges[edge]['label'] = round(graph.edges[edge]['weight'], 3)
+        width = graph.edges[edge].get('width')
+        if width:
+            graph.edges[edge]['penwidth'] = round(graph.edges[edge]['width'], 3)
 
-    display_graph(graph, node_method, edge_method=None)
+    display_graph(graph, node_method, edge_method=edge_method)
 
 def display_metrics(metrics):
     metric_df = [(metric, values['value'], values['normalized_value'], values.get('optimal_value'), values.get('worst_value'))
@@ -141,7 +143,7 @@ def display_charts(charts):
         exponential_line = display_exponential(chart_title, chart)
         if exponential_line is not None:
             line += _encode_altair_chart(exponential_line, scale)
-        st.altair_chart(line, use_container_width=True)
+        st.altair_chart(line)
 
 def display_chart_with_mean_line(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
@@ -161,4 +163,4 @@ def display_chart_with_mean_line(charts):
         exponential_line = display_exponential(chart_title, chart)
         if exponential_line is not None:
             line += _encode_altair_chart(exponential_line, scale)
-        st.altair_chart(line, use_container_width=True)
+        st.altair_chart(line)

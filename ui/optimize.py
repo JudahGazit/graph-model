@@ -44,7 +44,7 @@ def _get_parameters():
     num_nodes = st.sidebar.slider('Number of Nodes', 10, 300) if cost_type == 'circular' else st.sidebar.select_slider(
         'Number of Nodes', [i ** 2 for i in range(2, 20)], 16)
     mean_degree = st.sidebar.slider('Mean Degree', 1.5, 40.0, 2.0, step=0.01)
-    factors = _get_factors(['wiring', 'routing', 'fuel'])
+    factors = _get_factors(['volume', 'resistance'])
     num_edges = int(num_nodes * mean_degree / 2)
     st.title(f'{cost_type.title()} - {int(np.sqrt(num_nodes))}x{int(np.sqrt(num_nodes))}')
     return OptimizeParameters(num_nodes, num_edges, cost_type, factors)

@@ -1,21 +1,19 @@
 import abc
 import itertools
-import math
 
+import math
 import numpy as np
 from scipy.spatial.distance import euclidean
 
 from graph.distances import perimeter_distance
 from graph.graph_dataset import GraphDataset
 from graph.metrics.Metric import MetricBoundaries
-from graph.metrics.costs.fuel_cost import FuelCost
-from graph.metrics.costs.routing_cost import RoutingCost
-from graph.metrics.costs.wiring_cost import WiringCost
+from graph.metrics.costs.resistance_cost import ResistanceCost
+from graph.metrics.costs.volume_cost import VolumeCost
 
 costs_mapping = dict(
-    wiring=WiringCost,
-    routing=RoutingCost,
-    fuel=FuelCost,
+    resistance=ResistanceCost,
+    volume=VolumeCost
 )
 
 
@@ -44,7 +42,7 @@ class GraphCost(abc.ABC):
         for cost_name in self.factors:
             cost = costs_mapping[cost_name](graph_dataset, self.cost_boundaries[cost_name])
             self.cost_boundaries[cost_name] = cost.boundaries
-            total_cost += self.factors[cost_name] * cost.cost().normalized_value
+            total_cost += self.factors[cost_name] * cost.cost().normalized_value if self.factors[cost_name] is not None else 0
         return total_cost
 
     def cost(self, mat):
