@@ -29,13 +29,17 @@ def _get_parameters(loader):
 def _recreate_graph(results):
     graph = nx.Graph()
     graph.add_weighted_edges_from([(r['source'], r['target'], r['weight']) for r in results['edges']])
+    if results.get('widths'):
+        widths = np.asmatrix(results['widths'])
+        for edge in graph.edges:
+            graph.edges[edge]['width'] = widths[edge]
     return graph
 
 
 def _display_graph(graph, topology):
     if topology == 'circular':
         display_graph_in_circle(graph)
-    elif topology == 'lattice':
+    elif topology in ('lattice', 'torus'):
         display_graph_as_lattice(graph)
 
 

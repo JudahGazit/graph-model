@@ -46,23 +46,28 @@ class MultipleOptimizationsLoader:
         best_chart = max(charts_and_metrics, key=lambda t: cost(t[1], wiring_factor, routing_factor, fuel_factor))[0]
         return best_chart
 
-    def _best_graph(self, graphs, metrics, wiring_factor, routing_factor, fuel_factor):
-        graphs_and_metrics = zip(graphs, metrics)
-        best_graph = max(graphs_and_metrics, key=lambda t: cost(t[1], wiring_factor, routing_factor, fuel_factor))[0]
-        return best_graph
+    def _best_graph(self, graphs, widths, metrics, wiring_factor, routing_factor, fuel_factor):
+        graphs_and_metrics = zip(widths, graphs, metrics)
+        best_widths, best_graph, _ = max(graphs_and_metrics, key=lambda t: cost(t[2], wiring_factor, routing_factor, fuel_factor))
+        return best_graph, best_widths
 
     @property
     def options(self):
         options = glob('optimize_results/*/*_*/*_*_*')
-        options = [re.split('[\\\\_/]', option)[2:] for option in options]
-        options = [option if len(option) == 7 else option[:3] + [""] + option[3:] for option in options]
-        options = [SimulationOptions(*option) for option in options]
-        return options
+        loaded_options = []
+        for option in options:
+            cost_type, network_size, factors = option.split('/')[1:]
+            network_size = (network_size.split('_', 2) + [''])[:3]
+            factors = factors.split('_', 3)
+            loaded_options.append(SimulationOptions(cost_type, *network_size, *factors))
+        return loaded_options
 
-    def _format_results(self, strategy, metrics, charts, edges, *factors):
+    def _format_results(self, strategy, metrics, charts, edges, widths, *factors):
         is_floats = all(['*' not in v for v in factors])
+        best_graph, best_widths = self._best_graph(edges, widths, metrics, *factors) if is_floats else ([], None)
         result = {
-            'edges': self._best_graph(edges, metrics, *factors) if is_floats else []
+            'edges': best_graph,
+            'widths': best_widths
         }
         if strategy == 'mean':
             result['metric'] = self._union_metrics(metrics)
@@ -89,7 +94,8 @@ class MultipleOptimizationsLoader:
         metrics = [d['metrics'] for d in data]
         charts = [d['chart'] for d in data]
         edges = [d.get('edges', []) for d in data]
-        return self._format_results(strategy, metrics, charts, edges, wiring_factor, routing_factor, fuel_factor)
+        widths = [d.get('widths', None) for d in data]
+        return self._format_results(strategy, metrics, charts, edges, widths, wiring_factor, routing_factor, fuel_factor)
 
 
 if __name__ == '__main__':
