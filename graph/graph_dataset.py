@@ -25,9 +25,9 @@ class GraphDataset:
     def __number_of_nodes_and_edges(self, graph, adjacency):
         self.number_of_nodes = graph.number_of_nodes() if graph is not None else adjacency.shape[0]
         if self.widths is not None:
-            self.number_of_edges = self.widths.sum() // 2
+            self.number_of_edges = int(self.widths.sum() // 2)
         else:
-            self.number_of_edges = graph.number_of_edges() if graph is not None else np.count_nonzero(adjacency) // 2
+            self.number_of_edges = graph.number_of_edges() if graph is not None else int(np.count_nonzero(adjacency) // 2)
 
     @property
     def is_connected(self):
