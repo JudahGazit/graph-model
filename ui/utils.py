@@ -20,6 +20,7 @@ CHART_NAME_MAPPING = {
     'length-and-width': 'Fiber Length (x) and Fiber widths (y)'
 }
 
+
 def display_graph(graph: nx.Graph, node_method=None, edge_method=None, engine='neato'):
     for i, node in enumerate(graph.nodes):
         if node_method:
@@ -71,9 +72,11 @@ def display_graph_as_lattice(graph: nx.Graph):
 
     display_graph(graph, node_method, edge_method=edge_method)
 
+
 def display_metrics(metrics):
-    metric_df = [(metric, values['value'], values['normalized_value'], values.get('optimal_value'), values.get('worst_value'))
-                 for metric, values in metrics.items()]
+    metric_df = [
+        (metric, values['value'], values['normalized_value'], values.get('optimal_value'), values.get('worst_value'))
+        for metric, values in metrics.items()]
     metric_df = pd.DataFrame(metric_df,
                              columns=['Metric', 'Value', 'Efficiency', 'Optimal Value', 'Worst Value'])
     st.subheader('Metrics')
@@ -86,9 +89,9 @@ def _chart_selectors(charts):
     return scale
 
 
-def _encode_altair_chart(chart: alt.Chart, scale: str) -> alt.Chart:
+def _encode_altair_chart(chart: alt.Chart, scale: str, max_y: float) -> alt.Chart:
     chart = chart.encode(alt.X('x', axis=alt.Axis(title=''), sort=None),
-                         alt.Y('y', scale=alt.Scale(type=scale, base=10), axis=alt.Axis(title='')),
+                         alt.Y('y', scale=alt.Scale(type=scale, base=10), axis=alt.Axis(title=''), ),
                          tooltip=['x', 'y'])
     return chart
 
@@ -106,6 +109,7 @@ def _extract_x_y_from_chart(chart):
 def exponent(A, B, lamda1, lamda2, x):
     return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x)
 
+
 def fit_exponential_function_to_chart(X, Y):
     X, Y = np.asarray(X), np.asarray(Y)
     X = X[Y > 0]
@@ -122,6 +126,7 @@ def fit_exponential_function_to_chart(X, Y):
 CHART_HEIGHT = 500
 CHART_WIDTH = 700
 
+
 def display_exponential(chart_title, chart):
     if isinstance(chart['x'][0], str):
         X, Y = _extract_x_y_from_chart(chart)
@@ -129,6 +134,7 @@ def display_exponential(chart_title, chart):
         args = fit_exponential_function_to_chart(X, Y)
         X1 = np.linspace(0, len(X) - 1, 100)
         Y1 = exponent(*args, X1)
+        X1, Y1 = X1[(Y.min() < Y1) & (Y1 < Y.max())], Y1[(Y.min() < Y1) & (Y1 < Y.max())]
         exp_line = alt.Chart(pd.DataFrame(zip(X1, Y1), columns=['x', 'y']), title=chart_title,
                              height=CHART_HEIGHT, width=CHART_WIDTH).mark_line(color='red', strokeWidth=3)
         return exp_line
@@ -142,12 +148,12 @@ def display_charts(charts):
                       title=chart_title,
                       height=CHART_HEIGHT, width=CHART_WIDTH)
         c = getattr(c, f'mark_{chart.get("type", "bar")}')()
-
-        line = _encode_altair_chart(c, scale)
+        line = _encode_altair_chart(c, scale, max(chart['y']))
         exponential_line = display_exponential(chart_title, chart)
         if exponential_line is not None:
-            line += _encode_altair_chart(exponential_line, scale)
+            line += _encode_altair_chart(exponential_line, scale, max(chart['y']))
         st.altair_chart(line)
+
 
 def display_chart_with_mean_line(charts):
     charts = {CHART_NAME_MAPPING.get(k, k): v for k, v in charts.items()}
@@ -157,14 +163,14 @@ def display_chart_with_mean_line(charts):
         for index, y_value in enumerate(chart['ys']):
             c = alt.Chart(pd.DataFrame(zip(chart['x'], y_value), columns=['x', 'y']), title=chart_title,
                           height=CHART_HEIGHT, width=CHART_WIDTH).mark_line()
-            altair_charts.append(_encode_altair_chart(c, scale))
+            altair_charts.append(_encode_altair_chart(c, scale, max(chart['y'])))
 
         altair_chart = reduce(lambda a, b: a + b, altair_charts)
         mean_line = alt.Chart(pd.DataFrame(zip(chart['x'], chart['y']), columns=['x', 'y']), title=chart_title,
                               height=CHART_HEIGHT, width=CHART_WIDTH).mark_line(color='black', strokeWidth=3)
-        mean_line = _encode_altair_chart(mean_line, scale)
+        mean_line = _encode_altair_chart(mean_line, scale, max(chart['y']))
         line = altair_chart + mean_line
         exponential_line = display_exponential(chart_title, chart)
         if exponential_line is not None:
-            line += _encode_altair_chart(exponential_line, scale)
+            line += _encode_altair_chart(exponential_line, scale, mean_line['y'].max())
         st.altair_chart(line)

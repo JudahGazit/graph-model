@@ -23,12 +23,11 @@ class GraphDataset:
         self.__graph_and_adjacency(graph, adjacency)
 
     def __number_of_nodes_and_edges(self, graph, adjacency):
-        if graph is not None:
-            self.number_of_nodes = graph.number_of_nodes()
-            self.number_of_edges = graph.number_of_edges()
+        self.number_of_nodes = graph.number_of_nodes() if graph is not None else adjacency.shape[0]
+        if self.widths is not None:
+            self.number_of_edges = self.widths.sum() // 2
         else:
-            self.number_of_nodes = adjacency.shape[0]
-            self.number_of_edges = int(np.count_nonzero(adjacency) / 2)
+            self.number_of_edges = graph.number_of_edges() if graph is not None else np.count_nonzero(adjacency) // 2
 
     @property
     def is_connected(self):
@@ -60,6 +59,6 @@ class GraphDataset:
             self.adjacency = nx.to_numpy_matrix(graph)
 
     def __add_width_to_nx_graph(self):
-        if self.widths is not None:
+        if self.nx_graph is not None and self.widths is not None:
             for edge in self.nx_graph.edges:
                 self.nx_graph.edges[edge]['width'] = self.widths[edge[0], edge[1]]
