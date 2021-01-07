@@ -20,9 +20,9 @@ def create_state(matrix):
     ]
 
 class _GraphAnnealer(Annealer):
-    Tmax = 0.027
-    Tmin = 7.3e-06
-    steps = 10000
+    Tmax = 0.0081
+    Tmin = 5.8e-18
+    steps = 7000 * 3
     updates = 200
 
     def __init__(self, graph_cost: GraphCost, matrix, *args, **kwargs):
@@ -60,8 +60,8 @@ class _GraphAnnealer(Annealer):
         return score
 
     def move(self):
-        # self.random_change_edge()
-        self.random_add_edges()
+        self.random_change_edge()
+        # self.random_add_edges()
 
 def random_gaussian(num_nodes):
     nodes = np.random.multivariate_normal([0, 0], [[1, 0], [0, 1]], num_nodes)
