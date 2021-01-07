@@ -9,24 +9,23 @@ from graph.metrics.costs.icost import ICost
 class ResistanceCost(ICost):
     def cost(self):
         num_nodes = self.graph_dataset.number_of_nodes
-        if self.graph_dataset.graph.is_connected():
+        if self.graph_dataset.is_connected:
             laplacian = self.__create_laplacian()
             gamma = self.__calculate_gamma(laplacian, num_nodes)
-            omega = self.__calculate_omega(gamma, num_nodes)
+            omega = self.__calculate_omega(gamma)
             resistance = omega[np.triu_indices_from(omega, 1)].mean()
             return Metric(resistance, self.boundaries)
         return Metric(float('inf'), self.boundaries)
 
-    def __calculate_omega(self, gamma, num_nodes):
-        omega = np.zeros_like(gamma)
-        for i, j in itertools.combinations(range(num_nodes), 2):
-            resistance = gamma[i, i] + gamma[j, j] - 2 * gamma[i, j]
-            omega[i, j] = omega[j, i] = resistance
+    def __calculate_omega(self, gamma):
+        omega = -2 * gamma
+        omega += np.diag(gamma)
+        omega += np.asmatrix(np.diag(gamma)).transpose()
         return omega
 
     def __calculate_gamma(self, laplacian, num_nodes):
-        gamma = laplacian + np.ones_like(self.graph_dataset.adjacency) / num_nodes,
-        gamma = np.linalg.pinv(gamma)[0]
+        gamma = laplacian + 1 / num_nodes
+        gamma = np.linalg.pinv(gamma, hermitian=True)
         return gamma
 
     def __create_laplacian(self):
@@ -43,4 +42,4 @@ class ResistanceCost(ICost):
 
     @property
     def boundaries(self) -> MetricBoundaries:
-        return MetricBoundaries(1)
+        return MetricBoundaries(0.18)

@@ -36,13 +36,22 @@ class GraphCost(abc.ABC):
                       for i in range(self.num_nodes)])
         return mat
 
+    def __target_cost(self, factor, value):
+        return -(1000 * (factor - value)) ** 2
+
+    def __linear_cost(self, factor, value):
+        return factor * value
+
     def __calculate_total_cost(self, matrix):
         total_cost = 0
         graph_dataset = GraphDataset(distances=self.distance_matrix, positions=self.position, adjacency=matrix)
         for cost_name in self.factors:
-            cost = costs_mapping[cost_name](graph_dataset, self.cost_boundaries[cost_name])
-            self.cost_boundaries[cost_name] = cost.boundaries
-            total_cost += self.factors[cost_name] * cost.cost().normalized_value if self.factors[cost_name] is not None else 0
+            cost_class = costs_mapping.get(cost_name)
+            if cost_class is not None:
+                cost = cost_class(graph_dataset, self.cost_boundaries[cost_name])
+                self.cost_boundaries[cost_name] = cost.boundaries
+                # total_cost += self.__target_cost(self.factors[cost_name], cost.cost().normalized_value) if self.factors[cost_name] is not None else 0
+                total_cost += self.__linear_cost(self.factors[cost_name], cost.cost().normalized_value) if self.factors[cost_name] is not None else 0
         return total_cost
 
     def cost(self, mat):

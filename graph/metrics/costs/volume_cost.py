@@ -11,7 +11,7 @@ class VolumeCost(ICost):
             adjacency = np.multiply(self.graph_dataset.widths, self.graph_dataset.distances)
         else:
             adjacency = self.graph_dataset.adjacency
-        if self.graph_dataset.graph.is_connected():
+        if self.graph_dataset.is_connected:
             return Metric(adjacency.sum() / 2, self.boundaries)
         return Metric(float('inf'), self.boundaries)
 
@@ -24,18 +24,26 @@ class VolumeCost(ICost):
         edges = np.multiply(edges, self.graph_dataset.distances)
         return edges
 
+    def __number_of_edges(self):
+        if self.graph_dataset.widths is None:
+            return self.graph_dataset.number_of_edges
+        else:
+            return self.graph_dataset.widths.sum() / 2
+
     def __worst_case(self):
+        num_edges = self.__number_of_edges()
         maximal_spanning_tree = self.__spanning_tree(-1)
         worst_case = maximal_spanning_tree.sum() / 2
         edges_in_tree = self.graph_dataset.number_of_nodes - 1
-        worst_case += self.graph_dataset.distances.max() * (self.graph_dataset.number_of_edges - edges_in_tree)
+        worst_case += self.graph_dataset.distances.max() * (num_edges - edges_in_tree)
         return worst_case
 
     def __best_case(self):
+        num_edges = self.__number_of_edges()
         minimal_spanning_tree = self.__spanning_tree(1)
         best_case = minimal_spanning_tree.sum() / 2
         edges_in_tree = self.graph_dataset.number_of_nodes - 1
-        best_case += self.graph_dataset.distances.min() * (self.graph_dataset.number_of_edges - edges_in_tree)
+        best_case += self.graph_dataset.distances.min() * (num_edges - edges_in_tree)
         return best_case
 
     @property
@@ -45,3 +53,4 @@ class VolumeCost(ICost):
         if self._boundaries.optimal_value is None:
             self._boundaries.optimal_value = self.__best_case()
         return self._boundaries
+        # return MetricBoundaries()
