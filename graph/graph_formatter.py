@@ -135,10 +135,11 @@ class GraphFormatter:
     def __node_degree_and_edge_length_correlation(self):
         degrees = [degree for node, degree in sorted(self.graph_dataset.nx_graph.degree)]
         node_average_edge_dist = nx.to_numpy_array(self.graph_dataset.nx_graph).mean(axis=0)
+        data = pd.DataFrame(zip(degrees, node_average_edge_dist), columns=['degree', 'avg_weight'])
+        data = self.__agg_df(data, 'degree', 'avg_weight', 20, method='mean')
         return {
-            'x': degrees,
-            'y': node_average_edge_dist.tolist(),
-            'type': 'circle'
+            'x': data['x'],
+            'y': data['y']
         }
 
     def __degree_and_degree_of_neighbours(self):
