@@ -131,7 +131,7 @@ def display_exponential(chart_title, chart):
     if isinstance(chart['x'][0], str):
         X, Y = _extract_x_y_from_chart(chart)
 
-        args = fit_exponential_function_to_chart(X, Y)
+        args = fit_exponential_function_to_chart(range(len(X)), Y)
         X1 = np.linspace(0, len(X) - 1, 100)
         Y1 = exponent(*args, X1)
         X1, Y1 = X1[(Y.min() < Y1) & (Y1 < Y.max())], Y1[(Y.min() < Y1) & (Y1 < Y.max())]
