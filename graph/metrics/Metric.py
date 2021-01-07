@@ -15,6 +15,7 @@ class Metric:
         self.value = value
         self.metric_boundaries = metric_boundaries or MetricBoundaries()
         self._fill_values()
+        self.__custom_normalized = None
 
     def _fill_values(self):
         optimal_value, worst_value, mean_value = self.metric_boundaries.optimal_value, self.metric_boundaries.worst_value, self.metric_boundaries.mean_value
@@ -28,6 +29,8 @@ class Metric:
 
     @property
     def normalized_value(self):
+        if self.__custom_normalized is not None:
+            return self.__custom_normalized
         optimal_value, worst_value = self.metric_boundaries.optimal_value, self.metric_boundaries.worst_value
         if math.isinf(self.value):
             return float('-inf')
@@ -36,6 +39,10 @@ class Metric:
         elif optimal_value is not None:
             return optimal_value / self.value
         return self.value
+
+    @normalized_value.setter
+    def normalized_value(self, value):
+        self.__custom_normalized = value
 
     def to_dict(self):
         return {
