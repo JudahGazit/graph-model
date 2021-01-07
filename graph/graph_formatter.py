@@ -78,6 +78,10 @@ class GraphFormatter:
         logger.debug('end formatting graph_dataset sample')
         return self.format_graph_to_df(sampled_graph).to_dict('records')
 
+    def format_line_width(self):
+        if self.graph_dataset.widths is not None:
+            return self.graph_dataset.widths.tolist()
+
     def __heaviest_edge_weight(self, graph):
         weights = [graph.edges[edge]['weight'] for edge in graph.edges]
         return max(weights)
@@ -94,6 +98,8 @@ class GraphFormatter:
             'degree-and-degree-of-neighbours': self.__degree_and_degree_of_neighbours(),
             'triangles-hist': self.__triangles_hist()
         }
+        if self.graph_dataset.widths is not None:
+            charts['length-and-width'] = self.__fiber_length_and_width()
         logger.debug('end formatting charts')
         return charts
 
@@ -151,3 +157,11 @@ class GraphFormatter:
         triangles = pd.DataFrame(nx.triangles(self.graph_dataset.nx_graph).values(), columns=['x'])
         triangles['y'] = 1
         return self.__agg_df(triangles, 'x', 'y', True).to_dict('list')
+
+    def __fiber_length_and_width(self):
+        if self.graph_dataset.widths is not None:
+            return {
+                'x': self.graph_dataset.adjacency.flatten().tolist()[0],
+                'y': self.graph_dataset.widths.flatten().tolist(),
+                'type': 'circle'
+            }

@@ -16,7 +16,8 @@ CHART_NAME_MAPPING = {
     'nodes-distance-dist': 'Weighted Shortest Path Distance Histogram',
     'degree-edge-distance-correlation': 'Correlation between NODE DEGREE to AVG EDGE WEIGHT',
     'degree-and-degree-of-neighbours': 'DEGREE and AVG DEGREE of neighbours',
-    'triangles-hist': 'Triangles Histogram'
+    'triangles-hist': 'Triangles Histogram',
+    'length-and-width': 'Fiber Length (x) and Fiber widths (y)'
 }
 
 def display_graph(graph: nx.Graph, node_method=None, edge_method=None, engine='neato'):
@@ -106,11 +107,14 @@ def exponent(A, B, lamda1, lamda2, x):
     return A * np.exp(- abs(lamda1) * x) + B * np.exp(abs(lamda2) * x)
 
 def fit_exponential_function_to_chart(X, Y):
+    X, Y = np.asarray(X), np.asarray(Y)
+    X = X[Y > 0]
+    Y = Y[Y > 0]
 
     def loss_exp(args, x, y):
         return exponent(*args, x) - y
 
-    res_exp = least_squares(loss_exp, [1, 0.01, 0.5, 0.5], args=(range(len(X)), Y), ftol=1e-10)
+    res_exp = least_squares(loss_exp, [1, 0.01, 0.5, 0.5], args=(X, Y), ftol=1e-10)
     args = res_exp.x
     return args
 
