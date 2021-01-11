@@ -48,8 +48,11 @@ class _GraphAnnealer(Annealer):
         current_value = self.state[0][random_edge]
         if current_value == 0:
             self.state[0][random_edge] = 1
+            self.state[0][random_edge[::-1]] = 1
         else:
-            self.state[0][random_edge] += np.random.choice([-1, 1])
+            plus_or_minus = np.random.choice([-1, 1])
+            self.state[0][random_edge] += plus_or_minus
+            self.state[0][random_edge[::-1]] += plus_or_minus
 
     def copy_state(self, state):
         matrix, non_zero_indices = state[0], state[1]
