@@ -44,7 +44,8 @@ class _GraphAnnealer(Annealer):
                 self.state[1].pop(remove_edge_index)
 
     def random_add_edges(self):
-        random_edge = tuple(np.random.choice(range(self.graph_cost.num_nodes), 2, False))
+        random_u, random_v = np.random.randint(self.graph_cost.num_nodes), np.random.randint(self.graph_cost.num_nodes - 1)
+        random_edge = (random_u, random_v if random_v < random_u else random_v + 1)
         current_value = self.state[0][random_edge]
         if current_value == 0:
             self.state[0][random_edge] = 1
