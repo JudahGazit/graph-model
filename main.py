@@ -1,6 +1,8 @@
 import logging
 import sys
 
+import mkl
+import numexpr as ne
 import streamlit as st
 
 from ui.datasets import datasets
@@ -8,6 +10,9 @@ from ui.multiple_optimizations import multiple_optimizations
 from ui.optimize import optimize
 from ui.simulate_circular import simulate
 from ui.simulate_lattice import simulate_lattice
+
+ne.set_num_threads(1)
+mkl.set_num_threads(1)
 
 actions = {
     'Simulate (Circular)': simulate,
