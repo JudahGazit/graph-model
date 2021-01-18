@@ -138,8 +138,8 @@ class GraphFormatter:
         data = pd.DataFrame(zip(degrees, node_average_edge_dist), columns=['degree', 'avg_weight'])
         data = self.__agg_df(data, 'degree', 'avg_weight', 20, method='mean')
         return {
-            'x': data['x'],
-            'y': data['y']
+            'x': data['x'].tolist(),
+            'y': data['y'].tolist()
         }
 
     def __degree_and_degree_of_neighbours(self):
