@@ -13,9 +13,9 @@ logger = logging.getLogger('genetic')
 
 
 class GeneticAlgorithm(GraphOptimizerBase):
-    def __init__(self, num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type, n_gen=600,
-                 n_parents=125, mutation_rate=0.004, tol=70):
-        super().__init__(num_nodes, num_edges, wiring_factor, routing_factor, fuel_factor, method, cost_type)
+    def __init__(self, num_nodes, num_edges, factors, method, cost_type, n_gen=600,
+                 n_parents=125, mutation_rate=0.02, tol=70):
+        super().__init__(num_nodes, num_edges, factors, method, cost_type)
         self.n_gen = n_gen
         self.n_parents = n_parents
         self.mutation_rate = mutation_rate
@@ -80,8 +80,7 @@ class GeneticAlgorithm(GraphOptimizerBase):
         best_score_index = None
         plt.ion()
         for i in range(self.n_gen):
-            if (best_score_index is None or best_score_index > i - self.tol) and (
-                    best_score is None or -1 < best_score < 1):
+            if (best_score_index is None or best_score_index > i - self.tol):
                 scores, pop_after_fit = zip(*self.__score_and_sort(population))
                 best_mat, best_score, best_score_index = self.__select_best(best_mat, best_score, best_score_index, i,
                                                                             pop_after_fit, scores[0])
