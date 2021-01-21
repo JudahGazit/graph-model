@@ -1,4 +1,5 @@
 from graph.graph_optimizers.genetic_algorithm import GeneticAlgorithm
+from graph.graph_optimizers.hill_climbing import HillClimbing
 from graph.graph_optimizers.random_optimum import RandomOptimum
 from graph.graph_optimizers.simulated_annealing import SimulatedAnnealing
 
@@ -8,6 +9,7 @@ OPTIMIZERS = {
     'annealing': SimulatedAnnealing,
     'random': RandomOptimum,
     'genetic': GeneticAlgorithm,
+    'hill': HillClimbing
 }
 
 
