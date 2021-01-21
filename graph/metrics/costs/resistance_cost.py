@@ -1,14 +1,13 @@
-import networkx as nx
 import itertools
 
 import numpy as np
 
 from graph.graph_dataset import GraphDataset
 from graph.metrics.Metric import MetricBoundaries, Metric
-from graph.metrics.costs.icost import ICost
+from graph.metrics.costs.icost import INeighboursCost
 
 
-class ResistanceCost(ICost):
+class ResistanceCost(INeighboursCost):
     def __init__(self, graph_dataset: GraphDataset, boundaries=None):
         super().__init__(graph_dataset, boundaries)
         self.node_resistance = 1
@@ -66,22 +65,22 @@ class ResistanceCost(ICost):
                                np.zeros_like(self.graph_dataset.adjacency))
         omega = self.omega()
         n = self.graph_dataset.number_of_nodes
-        c_after = self._edge_conductance(adjacency)
-        c_before = self._edge_conductance(self.graph_dataset.adjacency)
-        delta = c_after - c_before
+        delta = self._edge_conductance(adjacency) - self._edge_conductance(self.graph_dataset.adjacency)
         kfg = omega.sum() / 2
-        kfg_options = np.zeros_like(adjacency)
-        for i, j in itertools.combinations(range(n), 2):
-            factor = delta[i, j] * n * np.square(omega[i, :] - omega[j, :]).sum()
-            factor -= delta[i, j] * (omega[i, :].sum() - omega[j, :].sum()) ** 2
-            factor /= 4 * (1 + delta[i, j] * omega[i, j])
-            kfg_options[i, j] = kfg_options[j, i] = kfg - factor
+
+        omega_row_sum = omega.sum(1)
+        omega_sum_diff = np.square(np.array(np.meshgrid(-omega_row_sum, omega_row_sum)).sum(0))
+        omega_squared_row_sum = np.square(omega).sum(1)
+        omega_squared_diff = np.array(np.meshgrid(omega_squared_row_sum, omega_squared_row_sum)).sum(0) - 2 * np.matmul(omega, omega.transpose())
+
+        factor = (n * np.multiply(delta, omega_squared_diff) - np.multiply(delta, omega_sum_diff)) / (4 * (1 + np.multiply(delta, omega)))
+        kfg_options = kfg - factor
         return kfg_options
 
-    def resistance_if_add(self):
+    def costs_if_add(self):
         return self.__resistance_if_add_or_remove(1)
 
-    def resistance_if_remove(self):
+    def costs_if_remove(self):
         return self.__resistance_if_add_or_remove(-1)
 
     @property
