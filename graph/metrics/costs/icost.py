@@ -2,7 +2,6 @@ import random
 from abc import ABC
 from typing import Union
 
-import igraph
 import numpy as np
 import pandas as pd
 import scipy.sparse.csgraph
@@ -39,3 +38,11 @@ class ICost(ABC):
     @property
     def boundaries(self) -> MetricBoundaries:
         raise NotImplementedError()
+
+
+class INeighboursCost(ICost, ABC):
+    def costs_if_add(self):
+        raise NotImplementedError
+
+    def costs_if_remove(self):
+        raise NotImplementedError

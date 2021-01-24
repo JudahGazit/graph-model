@@ -1,5 +1,3 @@
-import itertools
-
 import numpy as np
 
 from graph.graph_dataset import GraphDataset
