@@ -13,9 +13,11 @@ from graph.metrics.costs.volume_cost import VolumeCost
 
 costs_mapping = dict(
     resistance=ResistanceCost,
-    volume=VolumeCost
+    volume=VolumeCost,
 )
 
+scales = dict(resistance=1000,
+              volume=20000,)
 
 class GraphCost(abc.ABC):
     def __init__(self, num_nodes, factors: dict, method: str):
@@ -37,7 +39,7 @@ class GraphCost(abc.ABC):
         return mat
 
     def __target_cost(self, factor, value):
-        return -(1000 * (factor - value)) ** 2
+        return (factor - value) ** 2
 
     def __linear_cost(self, factor, value):
         return factor * value
@@ -47,12 +49,12 @@ class GraphCost(abc.ABC):
         graph_dataset = GraphDataset(distances=self.distance_matrix, positions=self.position, adjacency=matrix)
         for cost_name in self.factors:
             cost_class = costs_mapping.get(cost_name)
-            if cost_class is not None:
+            if cost_class is not None and self.factors[cost_name] is not None:
                 cost = cost_class(graph_dataset, self.cost_boundaries[cost_name])
+                total_cost += self.__linear_cost(self.factors[cost_name], cost.cost().normalized_value)
+                # total_cost += self.__target_cost(self.factors[cost_name] * scales[cost_name], cost.cost().normalized_value)
                 self.cost_boundaries[cost_name] = cost.boundaries
-                # total_cost += self.__target_cost(self.factors[cost_name], cost.cost().normalized_value) if self.factors[cost_name] is not None else 0
-                total_cost += self.__linear_cost(self.factors[cost_name], cost.cost().normalized_value) if self.factors[cost_name] is not None else 0
-        return total_cost
+        return -total_cost
 
     def cost(self, mat):
         matrix = np.multiply(self.distance_matrix, mat)
