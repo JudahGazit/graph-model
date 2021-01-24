@@ -1,17 +1,17 @@
 import copy
-import random
 import signal
+import time
 
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import euclidean
 from simanneal import Annealer
+from simanneal.anneal import time_string
 
-from graph.metrics.graph_cost import GraphCost, GraphCostTorus
 from graph.graph_optimizers.graph_optimizer_base import GraphOptimizerBase
+from graph.metrics.graph_cost import GraphCost
 
-signal.signal = lambda *args, **kwargs: None
-
+signal.signal = lambda *args, **kwargs: None  # Bug in simaaneal and python 3.8
 
 def create_state(matrix):
     return [
@@ -64,8 +64,17 @@ class _GraphAnnealer(Annealer):
         return score
 
     def move(self):
-        self.random_change_edge()
-        # self.random_add_edges()
+        # self.random_change_edge()
+        self.random_add_edges()
+
+    def default_update(self, step, T, E, acceptance, improvement):
+        elapsed = time.time() - self.start
+        remain = (self.steps - step) * (elapsed / step) if step > 0 else 0
+        data = [self.graph_cost.factors.get('volume'),
+                self.graph_cost.factors.get('resistance'),
+                step, T, E, acceptance, improvement]
+        print(*[round(item, 3) if item is not None else item for item in data],
+              time_string(elapsed), time_string(remain), sep='\t\t\t')
 
 def random_gaussian(num_nodes):
     nodes = np.random.multivariate_normal([0, 0], [[1, 0], [0, 1]], num_nodes)
