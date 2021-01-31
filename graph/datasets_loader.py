@@ -3,7 +3,7 @@ import logging
 import os
 import threading
 
-from graph.graph_categories.brain_nets import BrainNet
+from graph.graph_categories.brain_nets import BrainNet, BrainNetOLD
 from graph.graph_categories.graph_categories import CsvGraphCategory
 from graph.graph_categories.high_voltage import HighVoltageCategory
 from graph.graph_categories.internet import Internet
@@ -14,14 +14,16 @@ from graph.graph_formatter import GraphFormatter
 logger = logging.getLogger('dataset_loader')
 
 DATASETS = {
-    'highvoltage': HighVoltageCategory('High Voltage', 'datasets/highvoltage'),
-    # 'street_network': StreetNetwork('Street Network', 'datasets/street_networks'),
-    # 'internet': Internet('Internet', 'datasets/internet'),
-    'railroads': CsvGraphCategory('Rail Roads', 'datasets/railroads',
-                                  src='from_id',
-                                  dst='to_id',
-                                  weight='weight',
-                                  override_weights=False),
+    # 'highvoltage': HighVoltageCategory('High Voltage', 'datasets/highvoltage'),
+    'street_network': StreetNetwork('Street Network', 'datasets/street_networks', 0.5, 0.05, 0.07),
+    'streets_osm': StreetNetwork('Street Network OSM', 'datasets/streets_osm', None, None, 0.015),
+    # # 'internet': Internet('Internet', 'datasets/internet'),
+    # 'railroads': CsvGraphCategory('Rail Roads', 'datasets/railroads',
+    #                               src='from_id',
+    #                               dst='to_id',
+    #                               weight='weight',
+    #                               override_weights=False),
+    'brain_nets_old': BrainNetOLD('Brain Nets OLD', 'datasets/brain_nets_old'),
     'brain_nets': BrainNet('Brain Nets', 'datasets/brain_nets'),
     # 'roads': Roads('Roads Network', 'datasets/roads')
 }
@@ -64,7 +66,7 @@ class DatasetsResultCache:
     def get_results(self, dataset_name):
         if not self.get_from_cache(dataset_name):
             graph = self.__datasets_loader.load(dataset_name)
-            formatter = GraphFormatter(graph, topology='lattice')
+            formatter = GraphFormatter(graph)
             result = {
                 'edges': formatter.format_graph_sample(),
                 'chart': formatter.format_chart(),

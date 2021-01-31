@@ -25,10 +25,10 @@ class GraphCategoryBase(ABC):
     def load(self, dataset_name: str) -> GraphDataset:
         graph = nx.nx.convert_node_labels_to_integers(self._load_graph(dataset_name), ordering='sorted', label_attribute='original_label')
         distances = self._load_distance(dataset_name, graph)
+        distances = np.mat([[distances(i, j) for j in range(graph.number_of_nodes())] for i in range(graph.number_of_nodes())])
         if self.override_weights:
             for edge in graph.edges:
-                graph.edges[edge]['weight'] = distances(*edge)
-        distances = np.mat([[distances(i, j) for j in range(graph.number_of_nodes())] for i in range(graph.number_of_nodes())])
+                graph.edges[edge]['weight'] = distances[edge]
         return GraphDataset(graph, distances)
 
     def _filter_dir(self, filename):

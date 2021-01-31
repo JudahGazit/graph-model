@@ -20,7 +20,7 @@ class GraphDataset:
         self.__graph = None
         self.__is_connected = None
         self.__number_of_nodes_and_edges(graph, adjacency)
-        self.__graph_and_adjacency(graph, adjacency)
+        self.__nx_graph(graph)
 
     def __number_of_nodes_and_edges(self, graph: nx.Graph, adjacency: np.mat):
         self.number_of_nodes = graph.number_of_nodes() if graph is not None else adjacency.shape[0]
@@ -53,15 +53,14 @@ class GraphDataset:
                     self.__graph = igraph.Graph.Weighted_Adjacency(self.adjacency.tolist(), mode=igraph.ADJ_UNDIRECTED)
         return self.__graph
 
-    def __graph_and_adjacency(self, graph, adjacency):
+    def __nx_graph(self, graph: nx.Graph):
         self.nx_graph = graph
         self.__add_width_to_nx_graph()
-        if adjacency is not None:
-            self.adjacency = adjacency
-        else:
-            self.adjacency = nx.to_numpy_matrix(graph)
 
     def __add_width_to_nx_graph(self):
         if self.nx_graph is not None and self.widths is not None:
-            for edge in self.nx_graph.edges:
-                self.nx_graph.edges[edge]['width'] = self.widths[edge[0], edge[1]]
+            for u, v in self.nx_graph.edges:
+                if 'width' not in self.nx_graph.edges[u, v]:
+                    self.nx_graph.edges[u, v]['width'] = self.widths[u, v]
+                else:
+                    self.widths[u, v] = self.widths[v, u] = self.nx_graph.edges[u, v]['width']
