@@ -22,7 +22,8 @@ class GraphFormatter:
     def __init__(self, graph_dataset: GraphDataset):
         self.graph_dataset = graph_dataset
         self.df = self.format_graph_to_df(self.graph_dataset.nx_graph)
-        self.distances_bins = self.__distances_bins(self.graph_dataset.nx_graph, self.graph_dataset.distances.item)
+        self.num_bins = 10
+        self.distances_bins = self.__distances_bins(self.graph_dataset.nx_graph, self.graph_dataset.distances.item, self.num_bins)
 
     def format_graph_to_df(self, graph):
         result = []
@@ -37,7 +38,7 @@ class GraphFormatter:
         df = df.copy()
         df = df[df[group_column] < float('inf')]
         if bins and bins_type == 'data':
-            df['bins'] = pd.cut(df[group_column], 20, include_lowest=True, right=False).apply(str)
+            df['bins'] = pd.cut(df[group_column], self.num_bins, include_lowest=True, right=False).apply(str)
             df = df.groupby('bins', as_index=False).agg({agg_column: method})
         elif bins and bins_type == 'distances_f':
             df['bins'] = pd.cut(df[group_column], self.distances_bins[1], include_lowest=True, right=False).apply(str)
@@ -107,11 +108,11 @@ class GraphFormatter:
         metrics = {
             'number-of-nodes': Metric(self.graph_dataset.number_of_nodes),
             'number-of-edges': Metric(self.graph_dataset.number_of_edges),
-            'wiring-cost': WiringCost(self.graph_dataset).cost(),
-            'routing-cost': RoutingCost(self.graph_dataset).cost(),
-            'fuel-cost': FuelCost(self.graph_dataset).cost(),
-            'collision-cost': IntersectionCost(self.graph_dataset).cost(),
-            'modularity-cost': ModularityCost(self.graph_dataset).cost(),
+            # 'wiring-cost': WiringCost(self.graph_dataset).cost(),
+            # 'routing-cost': RoutingCost(self.graph_dataset).cost(),
+            # 'fuel-cost': FuelCost(self.graph_dataset).cost(),
+            # 'collision-cost': IntersectionCost(self.graph_dataset).cost(),
+            # 'modularity-cost': ModularityCost(self.graph_dataset).cost(),
             'volume-cost': VolumeCost(self.graph_dataset).cost(),
             'resistance-cost': ResistanceCost(self.graph_dataset).cost(),
         }
