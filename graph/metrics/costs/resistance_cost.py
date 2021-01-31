@@ -8,7 +8,7 @@ from graph.metrics.costs.icost import INeighboursCost
 class ResistanceCost(INeighboursCost):
     def __init__(self, graph_dataset: GraphDataset, boundaries=None):
         super().__init__(graph_dataset, boundaries)
-        self.node_resistance = 1
+        self.node_resistance = 0
         self.__omega = None
 
     def cost(self):
@@ -19,7 +19,7 @@ class ResistanceCost(INeighboursCost):
             return metric
         return Metric(float('inf'), self.boundaries)
 
-    def omega(self):
+    def omega(self) -> np.mat:
         if self.__omega is None:
             num_nodes = self.graph_dataset.number_of_nodes
             if self.graph_dataset.is_connected:
@@ -40,9 +40,9 @@ class ResistanceCost(INeighboursCost):
         gamma = np.linalg.pinv(gamma, hermitian=True)
         return gamma
 
-    def _edge_conductance(self, adjacency):
-        if self.graph_dataset.widths is not None:
-            adjacency = np.multiply(self.graph_dataset.widths, adjacency)
+    def _edge_conductance(self, adjacency, widths=None):
+        if widths is not None:
+            adjacency = np.multiply(widths, adjacency)
         else:
             adjacency = adjacency
         edge_conductance = np.divide(adjacency,
@@ -58,7 +58,6 @@ class ResistanceCost(INeighboursCost):
         return laplacian
 
     def __resistance_if_add_or_remove(self, plus_or_minus=1):
-        np.set_printoptions(2)
         adjacency = np.maximum(self.graph_dataset.adjacency + plus_or_minus * self.graph_dataset.distances,
                                np.zeros_like(self.graph_dataset.adjacency))
         omega = self.omega()
