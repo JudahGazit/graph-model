@@ -5,8 +5,10 @@ import streamlit as st
 from matplotlib import pyplot as plt
 
 from graph.datasets_loader import DatasetsLoader
+from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.resistance_cost import ResistanceCost
 from graph.metrics.costs.routing_cost import RoutingCost
+from graph.metrics.costs.wiring_cost import WiringCost
 from ui.resistance_centrality.data_loaders import load_brain
 from ui.resistance_centrality.plotters import plot_fiber_length_dist, remove_node_from_dataset, brain_polygon, \
     plot_hist, plot_scatter, plot_brain_point_cloud, plot_3d_brain
@@ -168,23 +170,30 @@ def modularity_efficiency_at_percentile(dataset, centrality, ax):
     plt.bar(x, modularity_scores, 0.01)
 
 
-def routing_cost_at_percentile(dataset, centrality, ax):
-    routings = []
-    x = np.linspace(0.1, 1, 10)
+def travel_costs_at_percentiles(dataset, centrality, below_or_above='below', ax=None):
+    costs = []
+    x = np.linspace(0.1, 1.0, 10) if below_or_above == 'below' else np.linspace(0.1, 0.9, 9)
     for i, p in enumerate(x):
-        allow_list = np.where(centrality <= np.quantile(centrality, p))[0]
+        allow_list = np.where(centrality <= np.quantile(centrality, p)
+                              if below_or_above == 'below' else centrality > np.quantile(centrality, p))[0]
         brain_at_percentile = remove_node_from_dataset(dataset, allow_list=allow_list)
-        routings.append(RoutingCost(brain_at_percentile).cost())
-    plt.setp(ax, ylim=(0.8, 1), xticks=x, xlabel='percentile', ylabel='normalized routing cost',
-             title='normalized routing cost at percentiles')
-    ax.bar(x, [r.metric_boundaries.optimal_value / r.value for r in routings], 0.05)
+        routing = RoutingCost(brain_at_percentile).cost()
+        costs.append((WiringCost(brain_at_percentile).cost().normalized_value,
+                      routing.metric_boundaries.optimal_value / routing.value))
+    costs = np.array(costs)
+    plt.setp(ax, ylim=(0.5, 1), xticks=x,
+             xlabel='percentiles', ylabel=f'normalized cost', title=f'normalized routing & wiring costs {below_or_above} percentiles')
+    ax.bar(x - 0.01, costs[:, 0], 0.02, label='wiring')
+    ax.bar(x + 0.01, costs[:, 1], 0.02, label='routing')
+    ax.legend()
 
 
 def plot_percentile_modularity(dataset, centrality):
     fig = plt.figure(figsize=(20, 15))
     degree_utilization_in_percentiles(dataset, centrality, fig.add_subplot(2, 2, 1))
     modularity_efficiency_at_percentile(dataset, centrality, fig.add_subplot(2, 2, 2))
-    routing_cost_at_percentile(dataset, centrality, fig.add_subplot(2, 2, 3))
+    travel_costs_at_percentiles(dataset, centrality, 'below', fig.add_subplot(2, 2, 3))
+    travel_costs_at_percentiles(dataset, centrality, 'above', fig.add_subplot(2, 2, 4))
     st.pyplot(fig)
 
 
@@ -222,3 +231,18 @@ if __name__ == '__main__':
                                      norm=plt.Normalize(vmin=centrality.min(), vmax=centrality.max()))
 
     triangles = brain_polygon(brain, centrality, mappable)
+
+    minibrain = remove_node_from_dataset(brain, allow_list=np.where(centrality <= np.quantile(centrality, 0.2))[0])
+    minibrain_centrality = resistance_centrality(minibrain)
+    plot_brain_point_cloud(brain, centrality <= np.quantile(centrality, 0.4), 45)
+
+    routings = []
+    x = np.linspace(0.1, 0.9, 9)
+    for i, p in enumerate(x):
+        minibrain = remove_node_from_dataset(brain, allow_list=np.where(centrality > np.quantile(centrality, p))[0])
+        routings.append(FuelCost(minibrain).cost())
+    plt.figure()
+    plt.clf()
+    plt.xticks([0] + x)
+    plt.ylim(0, 1)
+    plt.bar(x, [r.metric_boundaries.optimal_value / r.value for r in routings], 0.05)
