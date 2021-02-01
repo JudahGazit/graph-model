@@ -7,10 +7,9 @@ from graph.metrics.costs.icost import ICost
 
 class RoutingCost(ICost):
     def __optimal_routing_cost(self):
-        num_nodes = self.graph_dataset.number_of_nodes
-        number_of_pairs = num_nodes * (num_nodes - 1) / 2
-        number_of_pairs_in_distance_1 = num_nodes
-        number_of_pairs_in_distance_2 = number_of_pairs - num_nodes
+        number_of_pairs = self.graph_dataset.number_of_nodes * (self.graph_dataset.number_of_nodes - 1) / 2
+        number_of_pairs_in_distance_1 = self.graph_dataset.number_of_edges
+        number_of_pairs_in_distance_2 = number_of_pairs - self.graph_dataset.number_of_edges
         mean_degree = (number_of_pairs_in_distance_1 + 2 * number_of_pairs_in_distance_2) / number_of_pairs
         return mean_degree
 

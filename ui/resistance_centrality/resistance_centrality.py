@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 
 from graph.datasets_loader import DatasetsLoader
 from graph.metrics.costs.resistance_cost import ResistanceCost
+from graph.metrics.costs.routing_cost import RoutingCost
 from ui.resistance_centrality.data_loaders import load_brain
 from ui.resistance_centrality.plotters import plot_fiber_length_dist, remove_node_from_dataset, brain_polygon, \
     plot_hist, plot_scatter, plot_brain_point_cloud, plot_3d_brain
@@ -167,10 +168,23 @@ def modularity_efficiency_at_percentile(dataset, centrality, ax):
     plt.bar(x, modularity_scores, 0.01)
 
 
+def routing_cost_at_percentile(dataset, centrality, ax):
+    routings = []
+    x = np.linspace(0.1, 1, 10)
+    for i, p in enumerate(x):
+        allow_list = np.where(centrality <= np.quantile(centrality, p))[0]
+        brain_at_percentile = remove_node_from_dataset(dataset, allow_list=allow_list)
+        routings.append(RoutingCost(brain_at_percentile).cost())
+    plt.setp(ax, ylim=(0.8, 1), xticks=x, xlabel='percentile', ylabel='normalized routing cost',
+             title='normalized routing cost at percentiles')
+    ax.bar(x, [r.metric_boundaries.optimal_value / r.value for r in routings], 0.05)
+
+
 def plot_percentile_modularity(dataset, centrality):
-    fig = plt.figure(figsize=(20, 7))
-    degree_utilization_in_percentiles(dataset, centrality, fig.add_subplot(1, 2, 1))
-    modularity_efficiency_at_percentile(dataset, centrality, fig.add_subplot(1, 2, 2))
+    fig = plt.figure(figsize=(20, 15))
+    degree_utilization_in_percentiles(dataset, centrality, fig.add_subplot(2, 2, 1))
+    modularity_efficiency_at_percentile(dataset, centrality, fig.add_subplot(2, 2, 2))
+    routing_cost_at_percentile(dataset, centrality, fig.add_subplot(2, 2, 3))
     st.pyplot(fig)
 
 
