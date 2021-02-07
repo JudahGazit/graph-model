@@ -1,22 +1,17 @@
-import itertools
-
+import matplotlib.patches
 import networkx as nx
 import numpy as np
-from scipy.spatial import ConvexHull
-import scipy.optimize
 import streamlit as st
 from matplotlib import pyplot as plt
+from scipy.spatial import ConvexHull
 
 from graph.datasets_loader import DatasetsLoader
-from graph.graph_dataset import GraphDataset
-from graph.graph_optimizer import GraphOptimizer
-from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.resistance_cost import ResistanceCost
 from graph.metrics.costs.routing_cost import RoutingCost
 from graph.metrics.costs.wiring_cost import WiringCost
-from ui.resistance_centrality.data_loaders import load_brain, remove_node_from_dataset, grid_n
-from ui.resistance_centrality.plotters import plot_fiber_length_dist, brain_polygon, \
-    plot_hist, plot_scatter, plot_brain_point_cloud, plot_3d_brain, plot
+from ui.resistance_centrality.data_loaders import load_brain, remove_node_from_dataset
+from ui.resistance_centrality.plotters import plot_fiber_length_dist, plot_hist, plot_scatter, plot_brain_point_cloud, \
+    plot_3d_brain
 
 np.set_printoptions(2)
 
@@ -124,14 +119,18 @@ def plot_fiber_length_at_centrality_percentile(dataset, centrality, percentile, 
 
 def plot_fiber_length_at_centrality_percentiles(dataset, centrality):
     fig, ax = plt.subplots(figsize=(20, 4))
-    plt.setp(ax, xticks=np.linspace(0, 1, 11), yticks=[], xlim=(0, 1), ylim=(-1, 1))
+    percentiles = np.linspace(0.1, 0.9, 9)
+    plt.setp(ax, xticks=percentiles, yticks=[], xlim=(0, 1), ylim=(-1, 1), title='Fiber Length at Percentiles')
     plt.setp([spine[1] for spine in ax.spines.items() if spine[0] != 'bottom'], visible=False)
     ax.spines['bottom'].set_position('center')
-    ax.text(-0.1, 0.1, 'above percentile $\\uparrow$')
-    ax.text(-0.1, -0.1, 'under percentile $\\downarrow$', )
-    for i, p in enumerate(np.linspace(0.1, 1, 10)):
-        ax_top = ax.inset_axes((p, 0, 0.045, 0.5), transform=ax.transData, zorder=1)
-        ax_bottom = ax.inset_axes((p - 0.045, -0.5, 0.045, 0.5), transform=ax.transData, zorder=1)
+    ax.text(0.04, 0.3, 'PERIPHERY', ha='center')
+    ax.add_patch(matplotlib.patches.Rectangle((0, 0), 1, 0.7, color=(0, 0, 0.7, 0.2)))
+    ax.text(0.04, -0.4, 'CORE', ha='center')
+    ax.add_patch(matplotlib.patches.Rectangle((0, -0.7), 1, 0.7, color=(0.7, 0, 0, 0.2)))
+    ax.text(-0.03, -0.02, 'Percentile:', ha='center')
+    for i, p in enumerate(percentiles):
+        ax_top = ax.inset_axes((p - 0.045 / 2, 0.1, 0.045, 0.5), transform=ax.transData, zorder=1)
+        ax_bottom = ax.inset_axes((p - 0.045 / 2, -0.65, 0.045, 0.5), transform=ax.transData, zorder=1)
         plt.setp((ax_top, ax_bottom), xticks=[], yticks=[])
         plot_fiber_length_at_centrality_percentile(dataset, centrality, p, 'below', fig, ax_bottom)
         plot_fiber_length_at_centrality_percentile(dataset, centrality, p, 'above', fig, ax_top)
@@ -190,10 +189,9 @@ def degree_utilization_in_percentiles(dataset, centrality, ax):
 
 def modularity_efficiency_at_percentile(dataset, centrality, ax):
     def method(dataset, in_percentile):
-        for i in range(dataset.number_of_nodes):
-            is_same_component = np.array(np.meshgrid(in_percentile, in_percentile))
-            is_same_component = (is_same_component[0, :, :] == is_same_component[1, :, :])
-            modularity_mat = nx.modularity_matrix(dataset.nx_graph, range(dataset.number_of_nodes), weight=None)
+        modularity_mat = nx.modularity_matrix(dataset.nx_graph, range(dataset.number_of_nodes), weight=None)
+        is_same_component = np.array(np.meshgrid(in_percentile, in_percentile))
+        is_same_component = (is_same_component[0, :, :] == is_same_component[1, :, :])
         modularity = np.multiply(modularity_mat, is_same_component).sum() / (2 * dataset.number_of_edges)
         return modularity
 
@@ -204,21 +202,33 @@ def modularity_efficiency_at_percentile(dataset, centrality, ax):
     ax.spines['bottom'].set_position('center')
 
 
-def travel_costs_at_percentiles(dataset, centrality, below_or_above='below', ax=None):
-    costs = []
-    percentiles = np.linspace(0.1, 1.0, 10) if below_or_above == 'below' else np.linspace(0.1, 0.9, 9)
+def travel_costs_at_percentiles(dataset, centrality, ax=None):
+    percentiles = np.linspace(0.1, 0.9, 9)
+    wiring = np.empty((percentiles.shape[0], 2))
+    routing = np.empty((percentiles.shape[0], 2))
     for i, p in enumerate(percentiles):
-        allow_list = np.where(centrality <= np.quantile(centrality, p)
-                              if below_or_above == 'below' else centrality > np.quantile(centrality, p))[0]
-        brain_at_percentile = remove_node_from_dataset(dataset, allow_list=allow_list)
-        costs.append((WiringCost(brain_at_percentile).cost().normalized_value,
-                      RoutingCost(brain_at_percentile).cost().normalized_value))
-    costs = np.array(costs)
-    plt.setp(ax, ylim=(0.5, 1), xticks=percentiles,
-             xlabel='percentiles', ylabel=f'normalized cost', title=f'normalized routing & wiring costs {below_or_above} percentiles')
-    ax.bar(percentiles - 0.01, costs[:, 0], 0.02, label='wiring')
-    ax.bar(percentiles + 0.01, costs[:, 1], 0.02, label='routing')
+        allow_list = np.where(centrality <= np.quantile(centrality, p))[0]
+        brain_below_percentile = remove_node_from_dataset(dataset, allow_list=allow_list)
+        brain_above_percentile = remove_node_from_dataset(dataset, deny_list=allow_list)
+        wiring[i] = (WiringCost(brain_below_percentile).cost().normalized_value, WiringCost(brain_above_percentile).cost().normalized_value)
+        routing[i] = (RoutingCost(brain_below_percentile).cost().normalized_value, RoutingCost(brain_above_percentile).cost().normalized_value)
+
+    xticks = np.linspace(-1, 1, 5)
+    plt.setp(ax, xlim=(-1, 1), yticks=percentiles, ylim=(0, 1), ylabel='percentile cutoff',
+             xticks=xticks, xticklabels=abs(xticks),
+             xlabel='normalized efficiency', title='Normalized Efficiency Scores at Percentiles')
+    ax.barh(percentiles + 0.02, wiring[:, 1], 0.04, color='#81e2fc', label='wiring')
+    ax.barh(percentiles - 0.02, routing[:, 1], 0.04, color='#5897a8', label='routing')
+    ax.barh(percentiles + 0.02, -wiring[:, 0], 0.04, color='#03caff')
+    ax.barh(percentiles - 0.02, -routing[:, 0], 0.04, color='#1388a8')
+    ax.scatter((wiring[:, 1] - wiring[:, 0]) / 2, percentiles + 0.02, color='red', marker='x', zorder=5)
+    ax.scatter((routing[:, 1] - routing[:, 0]) / 2, percentiles - 0.02, color='red', marker='x', zorder=5)
+    ax.text(-0.5, 0.95, 'core', ha='center',)
+    ax.text(0.5, 0.95, 'periphery', ha='center')
+    ax.vlines(0, 0.0, 1, color='black')
     ax.legend()
+
+
 
 
 def relative_convex_volume_at_percentiles(dataset, centrality, ax):
@@ -245,25 +255,36 @@ def number_of_edges_at_percentiles(dataset, centrality, ax):
 
 
 def core_periphery_cost_at_percentiles(dataset, centrality, ax):
-    def method(dataset, core):
+    def method(dataset, core, max_value):
         delta = np.asarray(np.meshgrid(core, core)).max(0)
-        return np.multiply(dataset.adjacency, delta).sum()
+        cost = np.multiply(dataset.adjacency, delta).sum()
+        if max_value:
+            cost /= max_value
+        return cost
 
-    percentiles_bar_chart(dataset, centrality, method, ax, error_lines=True)
+    max_value = method(dataset, np.ones(dataset.number_of_nodes), None)
+
+    percentiles_bar_chart(dataset, centrality, lambda *args: method(*args, max_value), ax, error_lines=True)
     plt.setp(ax, ylabel='core-periphery efficiency', title=f'core-periphery efficiency in percentiles & in random graphs')
 
 
 def plot_percentile_modularity(dataset, centrality):
-    n_rows = 4
-    fig = plt.figure(figsize=(20, 7 * n_rows))
-    degree_utilization_in_percentiles(dataset, centrality, fig.add_subplot(n_rows, 2, 1))
-    number_of_edges_at_percentiles(dataset, centrality, fig.add_subplot(n_rows, 2, 2))
-    modularity_efficiency_at_percentile(dataset, centrality, fig.add_subplot(n_rows, 2, 3))
-    relative_convex_volume_at_percentiles(dataset, centrality, fig.add_subplot(n_rows, 2, 4))
-    travel_costs_at_percentiles(dataset, centrality, 'below', fig.add_subplot(n_rows, 2, 5))
-    travel_costs_at_percentiles(dataset, centrality, 'above', fig.add_subplot(n_rows, 2, 6))
-    core_periphery_cost_at_percentiles(dataset, centrality, fig.add_subplot(n_rows, 2, 7))
-    st.pyplot(fig)
+    charts = [
+        (degree_utilization_in_percentiles, ),
+        (number_of_edges_at_percentiles, ),
+        (modularity_efficiency_at_percentile, ),
+        (travel_costs_at_percentiles, ),
+        (relative_convex_volume_at_percentiles, ),
+        (core_periphery_cost_at_percentiles, ),
+    ]
+    for left, right in list(zip(range(0, len(charts), 2), list(range(1, len(charts), 2)) + [None])):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 7))
+        left_method, left_args = charts[left][0], charts[left][1:] if len(charts[left]) > 1 else []
+        left_method(dataset, centrality, *left_args, ax1)
+        if right:
+            right_method, right_args = charts[right][0], charts[right][1:] if len(charts[right]) > 1 else []
+            right_method(dataset, centrality, *right_args, ax2)
+        st.pyplot(fig)
 
 
 def brain_centrality():
