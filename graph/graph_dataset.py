@@ -24,13 +24,12 @@ class GraphDataset:
 
     def __number_of_nodes_and_edges(self, graph: nx.Graph, adjacency: np.mat):
         self.number_of_nodes = graph.number_of_nodes() if graph is not None else adjacency.shape[0]
+        adjacency = adjacency if adjacency is not None else nx.adjacency_matrix(graph, nodelist=range(self.number_of_nodes)).todense()
+        self.adjacency = adjacency.astype(np.float)
         if self.widths is None:
-            adjacency = adjacency if adjacency is not None else nx.adjacency_matrix(graph).todense()
-            adjacency = adjacency.astype(np.float)
-            widths = np.divide(adjacency, self.distances, out=np.zeros_like(adjacency), where=self.distances > 0)
-        else:
-            widths = self.widths
-        self.number_of_edges = int(np.nansum(widths) // 2)
+            self.widths = np.divide(self.adjacency, self.distances,
+                                    out=np.zeros_like(self.adjacency), where=self.distances > 0)
+        self.number_of_edges = int(np.nansum(self.widths) // 2)
 
     @property
     def is_connected(self):
