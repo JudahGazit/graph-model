@@ -8,12 +8,18 @@ from scipy.spatial.distance import euclidean
 from graph.distances import perimeter_distance
 from graph.graph_dataset import GraphDataset
 from graph.metrics.Metric import MetricBoundaries
+from graph.metrics.costs.fuel_cost import FuelCost
 from graph.metrics.costs.resistance_cost import ResistanceCost
+from graph.metrics.costs.routing_cost import RoutingCost
 from graph.metrics.costs.volume_cost import VolumeCost
+from graph.metrics.costs.wiring_cost import WiringCost
 
 costs_mapping = dict(
     resistance=ResistanceCost,
     volume=VolumeCost,
+    routing=RoutingCost,
+    fuel=FuelCost,
+    wiring=WiringCost,
 )
 
 scales = dict(resistance=1000,
@@ -146,7 +152,3 @@ class GraphCostFacade:
     def get_cost(self, num_nodes, factors, method, type):
         cost_class = self.type_mapping[type]
         return cost_class(num_nodes, factors, method)
-
-
-if __name__ == '__main__':
-    tr = GraphCostTorus(100, 1, 1, 1, 'maximize')

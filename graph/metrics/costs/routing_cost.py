@@ -57,6 +57,6 @@ class RoutingCost(ICost):
     def boundaries(self):
         if self._boundaries.optimal_value is None:
             self._boundaries.optimal_value = self.__optimal_routing_cost()
-        if self._boundaries.worst_value is None:
-            self._boundaries.worst_value = self.__worst_routing_cost()
+        # if self._boundaries.worst_value is None:
+        #     self._boundaries.worst_value = self.__worst_routing_cost()
         return self._boundaries
