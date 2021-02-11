@@ -4,14 +4,15 @@ import numpy as np
 import streamlit as st
 from matplotlib import pyplot as plt
 from scipy.spatial import ConvexHull
+from sklearn.mixture import GaussianMixture
 
 from graph.datasets_loader import DatasetsLoader
+from graph.graph_dataset import GraphDataset
 from graph.metrics.costs.resistance_cost import ResistanceCost
 from graph.metrics.costs.routing_cost import RoutingCost
 from graph.metrics.costs.wiring_cost import WiringCost
-from ui.resistance_centrality.data_loaders import load_brain, remove_node_from_dataset
-from ui.resistance_centrality.plotters import plot_fiber_length_dist, plot_hist, plot_scatter, plot_brain_point_cloud, \
-    plot_3d_brain
+from ui.resistance_centrality.data_loaders import load_brain, remove_node_from_dataset, random_model
+from ui.resistance_centrality.plotters import *
 
 np.set_printoptions(2)
 
@@ -36,7 +37,7 @@ def edge_resistance_centrality(graph_dataset, node_resistance=0):
 
 
 def _get_parameters():
-    brain_options = DatasetsLoader().categories['brain_nets'].options
+    brain_options = ['Random Model'] + DatasetsLoader().categories['brain_nets'].options
     brain_name = st.sidebar.selectbox('Brain Dataset', brain_options)
     node_resistance = st.sidebar.slider('Node Resistance', 0.0, 1.0e5, 0.0, 1.0)
     angle = st.slider('Angle', 0.0, 360.0, 45.0, 1.0)
@@ -46,8 +47,11 @@ def _get_parameters():
 
 def plot_3d_brains(brain, centrality, angle):
     fig = plt.figure(figsize=(20, 7))
-    plot_3d_brain(brain, centrality, angle, False, fig, fig.add_subplot(1, 2, 1, projection='3d'))
-    plot_brain_point_cloud(brain, centrality, angle, fig, fig.add_subplot(1, 2, 2, projection='3d'))
+    try:
+        plot_3d_brain(brain, centrality, angle, False, fig, fig.add_subplot(1, 2, 1, projection='3d'))
+        plot_brain_point_cloud(brain, centrality, angle, fig, fig.add_subplot(1, 2, 2, projection='3d'))
+    except:
+        plot(brain, centrality, fig=fig, ax=fig.add_subplot(1, 2, 1))
     st.pyplot(fig)
 
 
@@ -181,9 +185,9 @@ def degree_utilization_in_percentiles(dataset, centrality, ax):
         original_degrees = degrees[nodes_original_labels]
         return np.mean(current_degrees / original_degrees)
 
-    percentiles_bar_chart(dataset, centrality, method, ax, value_lines=True, width=0.05)
+    percentiles_bar_chart(dataset, centrality, method, ax, value_lines=True)
     plt.setp(ax, yticks=np.linspace(0, 1, 11), ylabel='% of degree utilized',
-             title='$\\mathbb{E}[\\frac{degree\ at\ percentile}{degree}]$ at different percentiles')
+             title='avg. $[\\frac{Core\ Degree}{degree}]$ at different percentiles')
     ax.plot(np.linspace(0, 1, 11), np.linspace(0, 1, 11), 'red')
 
 
@@ -248,23 +252,19 @@ def number_of_edges_at_percentiles(dataset, centrality, ax):
     def method(subgraph_dataset):
         return np.mean(subgraph_dataset.number_of_edges / dataset.number_of_edges)
 
-    percentiles_bar_chart(dataset, centrality, method, ax, value_lines=True, width=0.05)
+    percentiles_bar_chart(dataset, centrality, method, ax, value_lines=True)
     plt.setp(ax, yticks=np.linspace(0, 1, 11), ylabel='% of total edges',
              title='$\\frac{num\ edges\ at\ percentile}{num\ edges}$ at different percentiles')
     ax.plot(np.linspace(0, 1, 11), np.linspace(0, 1, 11) ** 2, 'red')
 
 
 def core_periphery_cost_at_percentiles(dataset, centrality, ax):
-    def method(dataset, core, max_value):
+    def method(dataset, core):
         delta = np.asarray(np.meshgrid(core, core)).max(0)
-        cost = np.multiply(dataset.adjacency, delta).sum()
-        if max_value:
-            cost /= max_value
+        cost = np.multiply(dataset.adjacency, delta).sum() / dataset.adjacency.sum()
         return cost
 
-    max_value = method(dataset, np.ones(dataset.number_of_nodes), None)
-
-    percentiles_bar_chart(dataset, centrality, lambda *args: method(*args, max_value), ax, error_lines=True)
+    percentiles_bar_chart(dataset, centrality, method, ax, error_lines=True)
     plt.setp(ax, ylabel='core-periphery efficiency', title=f'core-periphery efficiency in percentiles & in random graphs')
 
 
@@ -289,12 +289,16 @@ def plot_percentile_modularity(dataset, centrality):
 
 def brain_centrality():
     brain_name, node_resistance, angle = _get_parameters()
+    if brain_name == 'Random Model':
+        brain = random_model()
+    else:
+        brain = load_brain(load_brain)
 
-    brain = load_brain(brain_name)
     centrality = resistance_centrality(brain, node_resistance)
     edge_centrality = edge_resistance_centrality(brain, node_resistance)
-
     plot_3d_brains(brain, centrality, angle)
+    st.pyplot(plot_hist(np.array(brain.distances).flatten(), 20, 'distances', 'distance', 'freq'))
+    st.pyplot(plot_hist((np.array(brain.adjacency) > 0).sum(0), 20, 'degree dist', 'degree', 'freq'))
     plot_centrality_histograms(centrality)
     plot_fiber_length_histograms(brain, centrality)
     plot_degree_centrality_dependencies(brain, centrality)
@@ -310,84 +314,3 @@ if __name__ == '__main__':
     centrality = resistance_centrality(dataset, node_resistance)
     positions = np.array([dataset.positions(i) for i in range(dataset.number_of_nodes)])
     convex = ConvexHull(np.array(positions))
-
-    nearest_plane, plane_distances = np.zeros(positions.shape[0]), np.zeros(positions.shape[0])
-    for i, point in enumerate(positions):
-        distances = np.matmul(convex.equations[:, :3], point.transpose()) + convex.equations[:, 3]
-        nearest_plane[i] = abs(distances).argmin()
-        plane_distances[i] = abs(distances).min()
-
-    mappable = plt.cm.ScalarMappable(cmap=plt.get_cmap('jet'),
-                                     norm=plt.Normalize(vmin=centrality.min(), vmax=centrality.max()))
-
-    triangles = brain_polygon(dataset, centrality, mappable)
-
-    minibrain = remove_node_from_dataset(dataset, allow_list=np.where(centrality <= np.quantile(centrality, 0.4))[0])
-    minibrain_centrality = resistance_centrality(minibrain)
-    # plot_brain_point_cloud(dataset, centrality <= np.quantile(centrality, 0.4), 45)
-
-    # subgrid = remove_node_from_dataset(dataset, allow_list=np.random.permutation(range(dataset.number_of_nodes))[:36])
-    grid = grid_n(25)
-    subgrid = remove_node_from_dataset(grid, allow_list=np.random.permutation(range(grid.number_of_nodes))[:9 ** 2])
-    optimized = GraphOptimizer(subgrid.number_of_nodes,
-                               subgrid.number_of_nodes * 6,
-                               dict(fuel=1e-1, wiring=1e-9, routing=1),
-                               'minimize',
-                               'torus',
-                               'annealing')
-    optimized.graph_cost.distance_matrix = subgrid.distances
-    optimized = optimized.optimize()
-    adjacency = np.multiply(optimized.adjacency > 0, subgrid.distances)
-    subgrid = GraphDataset(nx.from_numpy_matrix(adjacency), subgrid.distances, subgrid.positions, adjacency=adjacency)
-    plot_fiber_length_dist(subgrid)
-    plot(subgrid)
-
-    tags = centrality <= np.quantile(centrality, 0.1)
-    k = 3
-    nearest = dataset.distances.argsort(1)[:, 1:k+1]
-    predicts = tags[nearest].sum(1) >= (k // 2 + 1)
-    score = (tags == predicts).mean()
-    print(score)
-
-
-    grid = grid_n(25)
-    positions_g = np.array([grid.positions(i) for i in range(dataset.number_of_nodes)])
-    number_of_hubs = int(0.2 * grid.number_of_nodes)
-    p = 0.05
-    random_hubs = np.random.permutation(range(grid.number_of_nodes))[:number_of_hubs]
-    random_hub_edges = np.random.random((number_of_hubs, number_of_hubs)) < p
-    random_hub_edges[np.triu_indices_from(random_hub_edges)] = 0
-    random_hub_edges = random_hub_edges + random_hub_edges.transpose()
-    random_hub_edges = random_hubs[np.argwhere(random_hub_edges)]
-    grid_h = grid.nx_graph.copy()
-    grid_h.add_weighted_edges_from([(u, v, grid.distances[u, v]) for u, v in random_hub_edges])
-    grid_h = GraphDataset(grid_h, grid.distances, grid.positions)
-    plot_fiber_length_dist(grid_h)
-
-    plot_brain_point_cloud(dataset, centrality < np.quantile(centrality, 0.2), 45)
-    # plt.plot(x, x, 'red')
-    # plt.bar
-
-    cliques = list(nx.find_cliques(dataset.nx_graph))
-
-    mod = nx.convert_node_labels_to_integers(
-        nx.Graph([(1, 2), (1, 3), (1, 4), (2, 3), (2, 6), (2, 7), (2, 8), (3, 4), (3, 8), (3, 9), (4, 5), (4, 9),
-                  (8, 9), (8, 12), (10, 11), (10, 12), (11, 12)]))
-    plt.figure()
-    nx.draw_networkx(mod)
-    plt.show()
-    expected = [0, 1, 2, 3, 6, 7]
-    components = np.array([1 if i in expected else 0 for i in range(mod.number_of_nodes())])
-    adj = nx.to_numpy_array(mod, range(mod.number_of_nodes()))
-
-    def score_center_module(adj, module):
-        module = module.round()
-        delta = np.asarray(np.meshgrid(module, module)).max(0)
-        score = np.multiply(adj, delta).mean()
-        return score
-
-
-    minimum = scipy.optimize.brute(lambda module: -score_center_module(adj, module),
-                                   [(0, 1) for i in range(mod.number_of_nodes())], Ns=2, disp=True)
-    np.where(minimum.round())[0]
-    sorted(results.items(), key=lambda x: (x[1], x[0].split('-')))
