@@ -103,29 +103,15 @@ def plot_fiber_length_dist(dataset, centrality=None, color=False, method='max', 
     chart = GraphFormatter(dataset).format_chart()['edge-length-dist-dbins']
     x = chart['x']
     colors = None
-    ax.set_xticks([])
     if color:
         colors, mappable, num_nodes = color_fiber_length(dataset, x, centrality, method=method)
         plt.colorbar(mappable)
         for i, n in enumerate(num_nodes):
             ax.text(i, 0, n, horizontalalignment='center', fontsize=8)
     plt.setp(ax, title='fiber length distribution' + f', colored by {method} centrality of nodes' if color else '',
-             xticks=[])
+             xticks=[], ylim=(0, 1))
     ax.bar(range(len(x)), chart['y'], width=1, color=colors)
     return fig
-
-
-def remove_node_from_dataset(dataset: GraphDataset, deny_list=None, allow_list=None):
-    allow_list = allow_list if allow_list is not None else [node for node in range(dataset.number_of_nodes) if
-                                                            node not in deny_list]
-    subgraph = dataset.nx_graph.subgraph(allow_list)
-    subgraph = nx.convert_node_labels_to_integers(subgraph, label_attribute='original_label')
-    subgraph_distances = np.mat(
-        [[dataset.distances[subgraph.nodes[i]['original_label'], subgraph.nodes[j]['original_label']]
-          for j in range(subgraph.number_of_nodes())] for i in range(subgraph.number_of_nodes())])
-    subgraph_positions = lambda i: dataset.positions(subgraph.nodes[i].original_label)
-    subgraph_dataset = GraphDataset(subgraph, subgraph_distances, subgraph_positions)
-    return subgraph_dataset
 
 
 def plot_scatter(x, y, c, title, xlabel, ylabel, colorbar=False, cmap=None, fig=None, ax=None):
