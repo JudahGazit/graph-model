@@ -16,6 +16,16 @@ from ui.resistance_centrality.plotters import *
 
 np.set_printoptions(2)
 
+
+def _get_parameters():
+    brain_options = ['Random Model'] + DatasetsLoader().categories['brain_nets'].options
+    brain_name = st.sidebar.selectbox('Brain Dataset', brain_options)
+    node_resistance = st.sidebar.slider('Node Resistance', 0.0, 1.0e5, 0.0, 1.0)
+    angle = st.slider('Angle', 0.0, 360.0, 45.0, 1.0)
+    st.header(brain_name)
+    return brain_name, node_resistance, angle
+
+
 def resistance_centrality(graph_dataset, node_resistance=0):
     resistance = ResistanceCost(graph_dataset)
     resistance.node_resistance = node_resistance
@@ -34,15 +44,6 @@ def edge_resistance_centrality(graph_dataset, node_resistance=0):
     edge_centrality = np.multiply(1 - edge_centrality, (value - resistance.costs_if_add())) + \
                       np.multiply(edge_centrality, (value - resistance.costs_if_remove()))
     return edge_centrality
-
-
-def _get_parameters():
-    brain_options = ['Random Model'] + DatasetsLoader().categories['brain_nets'].options
-    brain_name = st.sidebar.selectbox('Brain Dataset', brain_options)
-    node_resistance = st.sidebar.slider('Node Resistance', 0.0, 1.0e5, 0.0, 1.0)
-    angle = st.slider('Angle', 0.0, 360.0, 45.0, 1.0)
-    st.header(brain_name)
-    return brain_name, node_resistance, angle
 
 
 def plot_3d_brains(brain, centrality, angle):
@@ -106,25 +107,38 @@ def plot_centrality_histograms(centrality):
     st.pyplot(fig)
 
 
-def plot_fiber_length_at_centrality_percentile(dataset, centrality, percentile, above_or_below, fig, ax):
-    sub_dataset = None
-    if percentile < 1:
-        if above_or_below == 'below':
-            allow_list = np.where(centrality <= np.quantile(centrality, percentile))[0]
-        else:
-            allow_list = np.where(centrality > np.quantile(centrality, percentile))[0]
-        sub_dataset = remove_node_from_dataset(dataset, allow_list=allow_list)
-
-    if sub_dataset is not None and sub_dataset.is_connected:
-        plot_fiber_length_dist(sub_dataset, fig=fig, ax=ax)
-    else:
-        ax.text(0.51, 0.5, 'not\nconnected', horizontalalignment='center')
+def plot_general_histograms(dataset):
+    fig = plt.figure(figsize=(20, 7))
+    plot_hist(np.array(dataset.distances).flatten(), 20, 'distances', 'distance', 'freq', fig, fig.add_subplot(1, 2, 1))
+    plot_hist((np.array(dataset.adjacency) > 0).sum(0), 20, 'degree dist', 'degree', 'freq', fig, fig.add_subplot(1, 2, 2))
+    st.pyplot(fig)
 
 
 def plot_fiber_length_at_centrality_percentiles(dataset, centrality):
+    def method(dataset, fig, ax):
+        if dataset is not None and dataset.is_connected:
+            plot_fiber_length_dist(dataset, fig=fig, ax=ax)
+        else:
+            ax.text(0.51, 0.5, 'not\nconnected', horizontalalignment='center')
+
+    plot_horizontal_centrality_above_and_below(dataset, centrality, method, 'Fiber Length at Percentiles')
+
+
+def plot_degree_distribution_at_centrality_percentiles(dataset, centrality):
+    def method(dataset, fig, ax):
+        if dataset is not None and dataset.is_connected:
+            degrees = (np.asarray(dataset.adjacency) > 0).sum(0)
+            plot_hist(degrees, 5, '', '', '', fig=fig, ax=ax)
+        else:
+            ax.text(0.51, 0.5, 'not\nconnected', horizontalalignment='center')
+
+    plot_horizontal_centrality_above_and_below(dataset, centrality, method, 'Degree Distribution at Percentiles')
+
+
+def plot_horizontal_centrality_above_and_below(dataset, centrality, method, title):
     fig, ax = plt.subplots(figsize=(20, 4))
     percentiles = np.linspace(0.1, 0.9, 9)
-    plt.setp(ax, xticks=percentiles, yticks=[], xlim=(0, 1), ylim=(-1, 1), title='Fiber Length at Percentiles')
+    plt.setp(ax, xticks=percentiles, yticks=[], xlim=(0, 1), ylim=(-1, 1), title=title)
     plt.setp([spine[1] for spine in ax.spines.items() if spine[0] != 'bottom'], visible=False)
     ax.spines['bottom'].set_position('center')
     ax.text(0.04, 0.3, 'PERIPHERY', ha='center')
@@ -136,8 +150,9 @@ def plot_fiber_length_at_centrality_percentiles(dataset, centrality):
         ax_top = ax.inset_axes((p - 0.045 / 2, 0.1, 0.045, 0.5), transform=ax.transData, zorder=1)
         ax_bottom = ax.inset_axes((p - 0.045 / 2, -0.65, 0.045, 0.5), transform=ax.transData, zorder=1)
         plt.setp((ax_top, ax_bottom), xticks=[], yticks=[])
-        plot_fiber_length_at_centrality_percentile(dataset, centrality, p, 'below', fig, ax_bottom)
-        plot_fiber_length_at_centrality_percentile(dataset, centrality, p, 'above', fig, ax_top)
+        centrality_percentile = np.where(centrality <= np.quantile(centrality, p))[0]
+        method(remove_node_from_dataset(dataset, allow_list=centrality_percentile), fig, ax_bottom)
+        method(remove_node_from_dataset(dataset, deny_list=centrality_percentile), fig, ax_top)
     st.pyplot(fig)
 
 
@@ -233,14 +248,13 @@ def travel_costs_at_percentiles(dataset, centrality, ax=None):
     ax.legend()
 
 
-
-
 def relative_convex_volume_at_percentiles(dataset, centrality, ax):
-    original_volume = ConvexHull([dataset.positions(i) for i in range(dataset.number_of_nodes)]).volume
+    positions = np.array([dataset.positions(i) for i in range(dataset.number_of_nodes)])
+    original_volume = ConvexHull(positions).volume
 
-    @percentile_subgraph
-    def method(subdataset):
-        percentile_volume = ConvexHull([subdataset.positions(i) for i in range(subdataset.number_of_nodes)]).volume
+    def method(dataset, core):
+        core_indices = np.where(core)[0]
+        percentile_volume = ConvexHull(positions[core_indices]).volume
         return percentile_volume / original_volume
 
     plt.setp(ax, ylim=(0, 1), ylabel='% of total volume', title=f'% of total volume in percentiles & in random graphs')
@@ -268,14 +282,62 @@ def core_periphery_cost_at_percentiles(dataset, centrality, ax):
     plt.setp(ax, ylabel='core-periphery efficiency', title=f'core-periphery efficiency in percentiles & in random graphs')
 
 
+def edge_core_periphery_categories(dataset, centrality, unweighted, ax):
+    percentiles = np.linspace(0.1, 0.9, 9)
+    adjacency = np.asarray(dataset.adjacency)
+    if unweighted:
+        adjacency = adjacency > 0
+    percentiles_categories = np.empty((percentiles.shape[0], 3))
+    for i, p in enumerate(percentiles):
+        core = np.where(centrality <= np.quantile(centrality, p))[0]
+        periphery = np.where(centrality > np.quantile(centrality, p))[0]
+        core_to_core = adjacency[core][:, core].sum() / adjacency.sum()
+        core_to_periphery = 2 * adjacency[core][:, periphery].sum() / adjacency.sum()
+        periphery_to_periphery = adjacency[periphery][:, periphery].sum() / adjacency.sum()
+        percentiles_categories[i] = core_to_core, core_to_periphery, periphery_to_periphery
+    plt.setp(ax, xticks=percentiles, yticks=np.linspace(0, 1, 11), xlabel='percentiles', ylabel='ratio',
+             title=f'{"un" if unweighted else ""}weighted Edge Categories per Percentile')
+    ax.bar(percentiles - 0.01, percentiles_categories[:, 0], width=0.01, label='core to core', color='red')
+    ax.bar(percentiles + 0.00, percentiles_categories[:, 1], width=0.01, label='core to periphery', color='blue')
+    ax.bar(percentiles + 0.01, percentiles_categories[:, 2], width=0.01, label='periphery to periphery', color='lightgreen')
+    ax.legend()
+
+
+def average_euclidean_distance_in_core(dataset, centrality, ax):
+    positions = np.array([dataset.positions(i) for i in range(dataset.number_of_nodes)])
+    euclidean_distances = np.sqrt(np.square(np.array(np.meshgrid(positions[:, 0], -positions[:, 0])).sum(0)) +\
+                                  np.square(np.array(np.meshgrid(positions[:, 1], -positions[:, 1])).sum(0)) +\
+                                  np.square(np.array(np.meshgrid(positions[:, 2], -positions[:, 2])).sum(0)))
+
+    def method(dataset, core):
+        core_indices = np.where(core)[0]
+        return euclidean_distances[core_indices][:, core_indices].mean()
+
+    percentiles_bar_chart(dataset, centrality, method, ax, error_lines=True)
+    plt.setp(ax, ylabel='average euclidean distance', title=f'average euclidean distance in percentiles & in random graphs')
+
+
+def average_fiber_length_in_core(dataset, centrality, ax):
+    def method(dataset, core):
+        core_indices = np.where(core)[0]
+        return dataset.adjacency[core_indices][:, core_indices].mean()
+
+    percentiles_bar_chart(dataset, centrality, method, ax, error_lines=True)
+    plt.setp(ax, ylabel='average fiber length', title=f'average fiber length in percentiles & in random graphs')
+
+
 def plot_percentile_modularity(dataset, centrality):
     charts = [
-        (degree_utilization_in_percentiles, ),
-        (number_of_edges_at_percentiles, ),
-        (modularity_efficiency_at_percentile, ),
-        (travel_costs_at_percentiles, ),
-        (relative_convex_volume_at_percentiles, ),
-        (core_periphery_cost_at_percentiles, ),
+        (degree_utilization_in_percentiles,),
+        (number_of_edges_at_percentiles,),
+        (modularity_efficiency_at_percentile,),
+        (travel_costs_at_percentiles,),
+        (relative_convex_volume_at_percentiles,),
+        (core_periphery_cost_at_percentiles,),
+        (average_euclidean_distance_in_core,),
+        (average_fiber_length_in_core,),
+        (edge_core_periphery_categories, True),
+        (edge_core_periphery_categories, False),
     ]
     for left, right in list(zip(range(0, len(charts), 2), list(range(1, len(charts), 2)) + [None])):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 7))
@@ -292,18 +354,19 @@ def brain_centrality():
     if brain_name == 'Random Model':
         brain = random_model()
     else:
-        brain = load_brain(load_brain)
+        brain = load_brain(brain_name)
 
     centrality = resistance_centrality(brain, node_resistance)
+    # centrality = np.reciprocal((np.asarray(brain.adjacency) > 0).sum(0).astype(np.float))
     edge_centrality = edge_resistance_centrality(brain, node_resistance)
     plot_3d_brains(brain, centrality, angle)
-    st.pyplot(plot_hist(np.array(brain.distances).flatten(), 20, 'distances', 'distance', 'freq'))
-    st.pyplot(plot_hist((np.array(brain.adjacency) > 0).sum(0), 20, 'degree dist', 'degree', 'freq'))
+    plot_general_histograms(brain)
     plot_centrality_histograms(centrality)
     plot_fiber_length_histograms(brain, centrality)
     plot_degree_centrality_dependencies(brain, centrality)
     plot_length_edge_centrality_dependency(brain, centrality, edge_centrality)
     plot_fiber_length_at_centrality_percentiles(brain, centrality)
+    plot_degree_distribution_at_centrality_percentiles(brain, centrality)
     plot_percentile_modularity(brain, centrality)
 
 

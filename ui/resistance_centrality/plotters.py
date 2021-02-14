@@ -130,7 +130,7 @@ def plot_hist(x, bins, title, xlabel, ylabel, fig=None, ax=None):
     if fig is None or ax is None:
         fig, ax = plt.subplots()
     plt.setp(ax, title=title, xlabel=xlabel, ylabel=ylabel)
-    plt.hist(x, bins=bins)
+    ax.hist(x, bins=bins, density=True)
     return fig
 
 
